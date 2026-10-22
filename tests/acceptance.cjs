@@ -6,7 +6,7 @@
 const path = require('path');
 const { chromium } = require('playwright');
 
-const URL = 'file://' + path.resolve(__dirname, '..', 'index.html');
+const URL = 'file://' + path.resolve(__dirname, '..', process.env.APP || 'index.html');
 let failures = 0, passes = 0;
 
 function check(name, actual, expected) {
@@ -170,6 +170,94 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
   await f3Setup(page, '400.000.000', '264', [[1, 48, '8,34'], [49, 200, '13,14']]);
   check('error tidak menutup tenor', await txt(page, '#f3Alert'), contains('Jenjang tidak menutup tenor'));
 
+  const hasF4 = await page.$('#v4') !== null;
+  if (hasF4) {
+    console.log('F4 Bandingkan Syariah & Konvensional');
+    const f4 = async (o) => {
+      await page.evaluate(() => FinUI.showTab(4));
+      await page.click('#f4Reset');
+      await page.fill('#f4Harga', o.harga); await page.fill('#f4Dp', o.dp || '0'); await page.fill('#f4Tenor', o.tenor);
+      await page.click('#f4AAkad .opt[data-akad="' + (o.akad || 'murabahah') + '"]');
+      if (o.tiers) {
+        const r = page.locator('#f4ATiers .tier-row');
+        await r.nth(0).locator('.t-sampai').fill(o.tenor); await r.nth(0).locator('.t-rate').fill(o.tiers);
+      }
+      if (o.aFloat !== undefined) await page.fill('#f4AFloat', o.aFloat);
+      if ((o.akad || 'murabahah') === 'murabahah') await page.fill('#f4APot', o.pot || '0');
+      await page.fill('#f4BFix', o.bFix); await page.fill('#f4BFixM', o.bFixM); await page.fill('#f4BFloat', o.bFloat || '');
+      await page.click('#f4BMetode .opt[data-metode="' + (o.metode || 'anuitas') + '"]');
+      await page.fill('#f4BPen', o.pen || '0');
+      await page.$$eval('#v4 details.fees', (d) => d.forEach((x) => { x.open = true; }));
+      for (const id of ['#f4AProv', '#f4BProv']) await page.fill(id, o.prov || '0');
+      for (const id of ['#f4AAdmin', '#f4BAdmin']) await page.fill(id, o.admin || '0');
+      await page.click('#f4Form button[type=submit]');
+    };
+    const cmpRow = (label) => page.$$eval('#f4Cmp tbody tr', (t, l) => {
+      const tr = t.find((x) => x.cells[0].innerText.trim().startsWith(l)); return tr ? Array.from(tr.cells).map((c) => c.innerText.trim()) : null;
+    }, label);
+
+    // Margin 9% tetap vs bunga 9% fixed seluruh tenor, tanpa biaya → identik.
+    await f4({ harga: '100.000.000', tenor: '36', tiers: '9', bFix: '9', bFixM: '36' });
+    let row = await cmpRow('Total biaya');
+    check('9% vs 9% tetap: total biaya sama', row[1] === row[2] && row[3] === 'Rp 0', true);
+    row = await cmpRow('Biaya efektif');
+    check('9% vs 9% tetap: biaya efektif 9,00% keduanya', row[1] + ' / ' + row[2], '9,00% / 9,00%');
+    check('tanpa floating: catatan tanpa titik impas', await txt(page, '#f4Note'), contains('tidak ada asumsi floating'));
+
+    // Efektif menurun: pokok 120 jt, 120 bln, 12% → bulan 1 = 1 jt + 1,2 jt; bulan 120 = 1 jt + 10 rb.
+    await f4({ harga: '120.000.000', tenor: '120', tiers: '12', bFix: '12', bFixM: '120', metode: 'pokokTetap' });
+    await page.click('#f4SchedSel .opt[data-s="b"]');
+    let c4 = await rowCells(page, '#f4Sched table', 1);
+    check('efektif menurun bulan 1 Rp 2.200.000', c4[4], 'Rp 2.200.000');
+    c4 = await rowCells(page, '#f4Sched table', 120);
+    check('efektif menurun bulan 120 Rp 1.010.000', c4[4], 'Rp 1.010.000');
+    check('kolom bunga di jadwal B', await page.$$eval('#f4Sched thead th', (t) => t.map((x) => x.innerText.trim()).join('|')), contains('Angsuran Bunga'));
+
+    // Biaya di muka menaikkan biaya efektif.
+    await f4({ harga: '100.000.000', tenor: '36', tiers: '9', bFix: '9', bFixM: '36', prov: '1' });
+    row = await cmpRow('Biaya efektif');
+    check('provisi 1% → biaya efektif > 9%', row[1], (v) => parseFloat(v.replace(',', '.')) > 9.5);
+
+    // Titik impas konsisten dengan mesin hitung.
+    await f4({ harga: '500.000.000', dp: '100.000.000', tenor: '240', tiers: '10,5', bFix: '6,5', bFixM: '36', bFloat: '12' });
+    const be = await page.evaluate(() => {
+      const E = FinEngine, P = 4e8, n = 240;
+      const a = E.scheduleSegments(P, n, [{ dari: 1, sampai: n, ratePa: 0.105 }]).totalBayar;
+      const cost = (r) => E.scheduleSegments(P, n, E.segmentsFixedThenFloat(n, 0.065, 36, r)).totalBayar;
+      const res = E.breakEvenRate(cost, a);
+      return { rate: res.rate, gap: Math.abs(cost(res.rate) - a) };
+    });
+    check('titik impas: selisih total < Rp 1', be.gap < 1, true);
+    check('titik impas tampil = mesin', await txt(page, '#f4BreakEven'), (be.rate * 100).toFixed(2).replace('.', ',') + '%');
+    check('angka floating diberi tanda ≈', (await cmpRow('Total biaya'))[2], contains('≈'));
+
+    // Pelunasan: murabahah = sisa kewajiban; potongan 100% sisa margin = sisa pokok. Konvensional = sisa pokok × (1 + penalti).
+    const st = await page.evaluate(() => {
+      const E = FinEngine, r = E.scheduleSegments(4e8, 240, [{ dari: 1, sampai: 240, ratePa: 0.105 }]);
+      const s0 = E.earlySettlement(r, 60, { basis: 'sisaKewajiban', potonganPct: 0 });
+      const s1 = E.earlySettlement(r, 60, { basis: 'sisaKewajiban', potonganPct: 1 });
+      const b = E.earlySettlement(r, 60, { basis: 'sisaPokok', penaltyPct: 0.05 });
+      return [s0.pelunasan - r.rows[59].sisaKewajiban, s1.pelunasan - r.rows[59].sisaPokok, b.pelunasan - r.rows[59].sisaPokok * 1.05];
+    });
+    check('pelunasan: rumus dasar, potongan, penalti', st.every((d) => Math.abs(d) < 1e-3), true);
+    await page.fill('#f4K', '60').catch(() => {});
+    await page.$eval('#f4K', (el) => { el.value = '60'; el.dispatchEvent(new Event('input')); });
+    check('slider pelunasan bulan 60', await txt(page, '#f4KLabel'), contains('Bulan 60'));
+
+    // Isi dari Fitur 3.
+    await f3Setup(page, '400.000.000', '264', [[1, 48, '8,34'], [49, 264, '13,14']]);
+    await page.evaluate(() => FinUI.showTab(4));
+    await page.click('#f4From3');
+    check('isi dari Fitur 3: 2 jenjang', await page.$$eval('#f4ATiers .tier-row', (r) => r.map((x) => x.querySelector('.t-dari').value + '-' + x.querySelector('.t-sampai').value + ':' + x.querySelector('.t-rate').value).join(' ')), '1-48:8,34 49-264:13,14');
+    check('isi dari Fitur 3: angsuran awal A = Rp 3.312.133', (await cmpRow('Angsuran bulan 1'))[1], 'Rp 3.312.133');
+
+    // Validasi MMQ tanpa asumsi margin.
+    await f4({ harga: '100.000.000', tenor: '120', akad: 'mmq', aFloat: '', bFix: '9', bFixM: '120' });
+    check('MMQ tanpa asumsi margin → error', await txt(page, '#f4Alert'), contains('Asumsi margin setelah masa tetap belum diisi'));
+    await page.click('#f4Reset');
+    check('grafik tergambar', await page.$$eval('#f4Chart path', (p) => p.length), (v) => v >= 3);
+  }
+
   console.log('#13 Tidak ada scroll horizontal halaman');
   // Isi tab dengan data terbesar (jadwal 264 bulan, 2 jenjang + sakelar sisa pokok) sebelum mengukur.
   await f3Setup(page, '400.000.000', '264', [[1, 48, '8,34'], [49, 264, '13,14']], '11,98');
@@ -178,7 +266,7 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
   await page.check('#f2Toggle');
   for (const w of [390, 820, 1280]) {
     await page.setViewportSize({ width: w, height: 900 });
-    for (const t of [1, 2, 3]) {
+    for (const t of hasF4 ? [1, 2, 3, 4] : [1, 2, 3]) {
       await page.evaluate((n) => FinUI.showTab(n), t);
       const m = await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
       check(w + 'px tab ' + t + ' scrollWidth === clientWidth', m[0] + '/' + m[1], () => m[0] === m[1]);
@@ -186,14 +274,17 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
   }
 
   console.log('Istilah: tidak ada kata terlarang di UI');
-  const body = (await page.evaluate(() => document.querySelector('header').textContent + ' ' + document.querySelector('main').textContent)).toLowerCase();
-  for (const w of ['cicilan', 'bunga', 'pinjaman', 'irr', 'dsn-mui', 'fatwa', 'rate']) check('tidak memuat "' + w + '"', new RegExp('\\b' + w + '\\b').test(body), false);
+  // Fitur 1–3 (sisi syariah): semua istilah terlarang. Seluruh halaman: tanpa "cicilan", "IRR", rujukan fatwa.
+  const body = (await page.evaluate(() => ['header', '#v1', '#v2', '#v3'].map((q) => document.querySelector(q).textContent).join(' '))).toLowerCase();
+  for (const w of ['cicilan', 'bunga', 'pinjaman', 'irr', 'dsn-mui', 'fatwa', 'rate']) check('F1–F3 tidak memuat "' + w + '"', new RegExp('\\b' + w + '\\b').test(body), false);
+  const all = (await page.evaluate(() => document.querySelector('main').textContent)).toLowerCase();
+  for (const w of ['cicilan', 'irr', 'dsn-mui', 'fatwa', 'rate']) check('halaman tidak memuat "' + w + '"', new RegExp('\\b' + w + '\\b').test(all), false);
 
   await page.evaluate(() => FinUI.showTab(1));
   await page.click('#f1Reset');
   check('F1 keterangan margin efektif ringkas', await page.$$eval('#f1Table tbody tr', (t) => t.find((tr) => tr.cells[0].innerText.trim() === 'Margin Efektif p.a.').cells[1].innerText.trim()), 'Dicari dari rumus anuitas*');
   check('F1 catatan rumus anuitas', await txt(page, '#f1Footnote'), contains('Margin efektif p.a. = i × 12'));
-  check('tidak memuat "Margin Total"', /margin total/i.test(body), false);
+  check('tidak memuat "Margin Total"', /margin total/i.test(all), false);
   check('tidak memuat label "BARU"', /\bBARU\b/.test(await page.evaluate(() => document.querySelector('main').textContent)), false);
   check('tidak ada error JavaScript', jsErrors.join('; '), '');
   await browser.close();
