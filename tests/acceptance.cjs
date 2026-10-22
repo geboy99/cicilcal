@@ -131,6 +131,11 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
   console.log('#7 F2 300jt / 9% p.a. / 120 / Efektif (Anuitas)');
   await f2Setup(page, '300.000.000', '120', 'pa', '9', 'anuitas');
   check('angsuran Rp 3.800.273', await txt(page, '#f2Angsuran'), 'Rp 3.800.273');
+  if (await page.$('#f2Equiv')) {
+    check('Efektif (Anuitas) → setara margin flat 5,20%', await txt(page, '#f2Equiv'), 'Setara margin flat 5,20% p.a. (dihitung dari pokok awal).');
+    await page.click('#f2Skema .opt[data-skema="flat"]');
+    check('Flat → setara margin efektif', await txt(page, '#f2Equiv'), contains('Setara margin efektif'));
+  }
   check('presisi 3.800.273,21', await page.evaluate(() => Math.round(FinEngine.pmt(0.09, 120, 3e8) * 100) / 100), 3800273.21);
 
   console.log('#8 F2 100jt / 9% p.a. / 36 / Anuitas → mode Total Margin (%)');
