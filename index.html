@@ -979,11 +979,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
   function f2Render() {
     var res = f2Last.res, n = res.tenor, flat = res.skema === 'flat';
     var meta = 'Tetap ' + n + ' bulan · ' + (flat ? 'margin flat ' + fmtPct(res.marginFlatPa, 2) : 'margin efektif ' + fmtPct(res.marginEfektifPa, 2)) + ' p.a.';
-    var meta2 = '';
+    // Angka setara skema lain, dua arah: Flat → margin efektif, Efektif (Anuitas) → margin flat.
+    var meta2 = flat
+      ? '<div class="meta2" id="f2Equiv">Setara margin efektif ' + fmtPct(res.marginEfektifPa, 2) + ' p.a. (Anuitas).</div>'
+      : '<div class="meta2" id="f2Equiv">Setara margin flat ' + fmtPct(res.marginFlatPa, 2) + ' p.a. (dihitung dari pokok awal).</div>';
     if (!flat && f2Last.mode === 'total')
-      meta2 = '<div class="meta2">Margin efektif <b id="f2Solved">' + fmtPct(res.marginEfektifPa, 2) + '</b> p.a. dicari agar total margin = ' + fmtPct(f2Last.totalInput, 2) + ' dari pokok.</div>';
-    else if (flat)
-      meta2 = '<div class="meta2">Setara margin efektif ' + fmtPct(res.marginEfektifPa, 2) + ' p.a. (Anuitas).</div>';
+      meta2 = '<div class="meta2">Margin efektif <b id="f2Solved">' + fmtPct(res.marginEfektifPa, 2) + '</b> p.a. dicari agar total margin = ' + fmtPct(f2Last.totalInput, 2) + ' dari pokok.</div>' + meta2;
     var pct = res.totalMargin / res.pokok;
     var h = '<div class="hero"><div class="lbl">ANGSURAN PER BULAN · SKEMA ' + (flat ? 'FLAT' : 'EFEKTIF (ANUITAS)') + '</div>' +
       '<div class="val tabular" id="f2Angsuran">' + fmtRp(res.angsuranAwal) + '</div><div class="meta">' + meta + '</div>' + meta2 + '</div>' +

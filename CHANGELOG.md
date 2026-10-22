@@ -6,6 +6,9 @@ Catatan perubahan, terbaru di atas. Spesifikasi dan angka uji ada di `docs/`:
 ## [Belum dirilis]
 
 ### Ditambahkan
+- **Fitur 2: hero skema Efektif (Anuitas) menampilkan "Setara margin flat … p.a. (dihitung dari pokok awal)"**,
+  melengkapi skema Flat yang sudah menampilkan setara margin efektif. Contoh: 300 jt, 9% efektif, 120 bln →
+  setara flat 5,20% (sama dengan Fitur 1).
 - **Jenjang margin ⇄ angsuran per bulan (Fitur 3 & 4).** Tiap jenjang bisa diisi margin p.a. *atau*
   nominal angsuran per bulan; isian lainnya dihitung otomatis (ditandai "otomatis") dan diperbarui bila
   pokok, tenor, atau jenjang sebelumnya berubah. Margin dicari berurutan per jenjang dari sisa pokok di
