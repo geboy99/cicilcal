@@ -5,17 +5,20 @@ Catatan perubahan, terbaru di atas. Spesifikasi dan angka uji ada di `docs/`:
 
 ## [Belum dirilis]
 
-### Ditemukan (menunggu keputusan)
-- **Teks resmi Fatwa DSN-MUI 153/2022 berbeda dari ringkasan sekunder** yang dipakai sebelumnya.
-  Potongan pelunasan murabahah tidak "besarnya kebijakan lembaga, tidak diperjanjikan di akad". Fatwa
-  menetapkan rumusnya: sisa yang dibayar = *qimah haliyyah* (harga jual tunai + tambahan harga sesuai
-  waktu yang telah dilewati) − angsuran yang telah dibayar, dengan harga perolehan, harga jual tunai,
-  dan harga jual tidak tunai disepakati saat akad. Tampilan rentang di Fitur 4 dan catatan kakinya perlu
-  dikoreksi. Lihat `docs/SPEK-FITUR-4.md` §4.
+### Diperbaiki
+- **Pelunasan dipercepat murabahah (Fitur 4) kini mengikuti teks resmi Fatwa DSN-MUI 153/2022.**
+  Yang dibayar = harga saat pelunasan (harga jual tunai + tambahan harga sebanding waktu yang telah
+  berjalan) − angsuran yang sudah dibayar, ditambah biaya riil/administrasi bila ada. Menggantikan tampilan
+  rentang dan isian "% potongan", yang didasarkan pada ringkasan sekunder (ketentuan lama Fatwa 23/2002).
+  Contoh bawaan bulan 60: Rp 300.000.000 (sebelumnya rentang Rp 361,3 jt – Rp 718,8 jt).
+- Isian baru di kartu A: *Harga jual tunai di akad* (kosong = harga aset, ditandai asumsi) dan
+  *Biaya riil & administrasi pelunasan*.
+- Catatan Sisa Kewajiban di Fitur 2, 3, dan 4 disesuaikan (potongan wajib, dihitung dari harga jual tunai).
 
 ### Dokumentasi
 - `docs/HANDOVER-2.md` diganti nama menjadi `docs/SPEK-FITUR-4.md`; riwayat perubahan dipindah ke
   `CHANGELOG.md` ini. `docs/HANDOVER.md` tetap sebagai dokumen serah terima asli.
+- `docs/SPEK-FITUR-4.md` §4 berisi ketentuan Fatwa 153/2022 dan Pedoman MMQ 01/2013 yang diverifikasi dari teks resmi.
 
 ## 2026-10-22
 
@@ -29,7 +32,7 @@ Catatan perubahan, terbaru di atas. Spesifikasi dan angka uji ada di `docs/`:
   `scheduleSegments`; angka Fitur 3 tidak berubah.
 - Editor jenjang dipakai bersama Fitur 3 dan Fitur 4. Tombol "Isi dari Fitur 2 / Fitur 3".
 - Keputusan selama pengembangan: MMQ ditunda (tidak ada di Fitur 1–3); 2 produk saja; denda sebagai
-  keterangan; pelunasan murabahah sebagai rentang (*perlu koreksi, lihat atas*).
+  keterangan; pelunasan murabahah sebagai rentang (*kemudian dikoreksi, lihat atas*).
 
 ### Berlaku untuk semua fitur
 - Contoh isian disamakan: harga 500 jt, DP 100 jt (pokok 400 jt), 240 bulan, margin efektif 10,5% p.a.

@@ -385,7 +385,8 @@
               <div class="hint">Satu jenjang = margin tetap seluruh tenor. Lebih dari satu = step-up yang tertulis di akad.</div>
               <div class="import">Isi dari: <button type="button" class="linkbtn" id="f4From2">Fitur 2</button><button type="button" class="linkbtn" id="f4From3">Fitur 3</button></div>
             </div>
-            <div class="fg full"><label class="l" for="f4APot">Asumsi potongan pelunasan dipercepat <span class="muted">(opsional)</span></label><div class="input-wrap"><input class="input bare" id="f4APot" inputmode="decimal" autocomplete="off" data-pct placeholder="kosong = rentang"><span class="adorn suf">% sisa margin</span></div><div class="hint">Lembaga wajib memberi potongan bila dilunasi sebelum jatuh tempo, tetapi besarnya ditetapkan lembaga dan tidak diperjanjikan di akad. Kosongkan untuk melihat rentangnya.</div></div>
+            <div class="fg full"><label class="l" for="f4ATunai">Harga jual tunai di akad <span class="muted">(opsional)</span></label><div class="input-wrap"><span class="adorn pre">Rp</span><input class="input bare" id="f4ATunai" inputmode="numeric" autocomplete="off" data-rupiah placeholder="kosong = harga aset"></div><div class="hint">Dipakai untuk menghitung pelunasan dipercepat. Harga jual tunai wajib tercantum di akad murabahah; bila dikosongkan, dianggap sama dengan harga aset (asumsi).</div></div>
+            <div class="fg full"><label class="l" for="f4ABiaya">Biaya riil &amp; administrasi pelunasan <span class="muted">(opsional)</span></label><div class="input-wrap"><span class="adorn pre">Rp</span><input class="input bare" id="f4ABiaya" inputmode="numeric" autocomplete="off" data-rupiah placeholder="0"></div><div class="hint">Boleh dikenakan lembaga bila pelunasan dipercepat atas kehendak nasabah.</div></div>
             <details class="fees fg full"><summary>Biaya di muka (provisi &amp; administrasi)</summary><div class="fields"><div class="fg"><label class="l" for="f4AProv">Provisi</label><div class="input-wrap"><input class="input bare" id="f4AProv" inputmode="decimal" autocomplete="off" data-pct><span class="adorn suf">% pokok</span></div></div><div class="fg"><label class="l" for="f4AAdmin">Administrasi &amp; lainnya</label><div class="input-wrap"><span class="adorn pre">Rp</span><input class="input bare" id="f4AAdmin" inputmode="numeric" autocomplete="off" data-rupiah></div></div></div></details>
           </div>
         </fieldset>
@@ -612,16 +613,27 @@ var FinEngine = (function () {
   }
 
   /* Pelunasan dipercepat setelah angsuran bulan ke-k dibayar.
-     basis 'sisaKewajiban' (murabahah): sisa harga jual − potongan (asumsi, % dari sisa margin belum jatuh tempo).
-     basis 'sisaPokok' (konvensional): sisa pokok + penalti % dari yang dilunasi. */
+     basis 'murabahah' : harga saat pelunasan − angsuran dibayar + biaya riil/administrasi, dengan
+                         harga saat pelunasan = harga jual tunai + (harga jual tidak tunai − harga jual tunai) × k/n.
+                         hargaTunai = harga jual tunai bagian yang dibiayai (bawaan: pokok); harga jual tidak tunai = total angsuran.
+     basis 'sisaPokok' : sisa pokok + penalti % dari yang dilunasi (konvensional). */
   function earlySettlement(res, k, opts) {
     if (!(k >= 1 && k < res.tenor)) throw new FinError('Bulan pelunasan harus antara 1 dan ' + (res.tenor - 1) + '.');
     var dibayar = 0, sisaMargin = 0, row = res.rows[k - 1];
     res.rows.forEach(function (r, j) { if (j < k) dibayar += r.angsuran; else sisaMargin += r.margin; });
     var out = { bulan: k, basis: opts.basis, dibayar: dibayar, sisaMargin: sisaMargin, penalti: 0, potongan: 0 };
-    if (opts.basis === 'sisaKewajiban') {
-      out.dasar = row.sisaKewajiban;
-      out.potongan = sisaMargin * (opts.potonganPct || 0);
+    if (opts.basis === 'murabahah') {
+      var tunai = opts.hargaTunai == null ? res.pokok : opts.hargaTunai;
+      if (tunai < res.pokok - 0.5) throw new FinError('Harga jual tunai tidak boleh lebih kecil dari pokok pembiayaan.');
+      if (tunai > res.totalBayar + 0.5) throw new FinError('Harga jual tunai tidak boleh melebihi harga jual tidak tunai (total angsuran).');
+      out.hargaTunai = tunai;
+      out.tambahan = (res.totalBayar - tunai) * k / res.tenor;
+      out.hargaSaatLunas = tunai + out.tambahan;
+      out.dasar = Math.max(0, out.hargaSaatLunas - dibayar);
+      out.penalti = opts.biayaRp || 0;                       // biaya riil & administrasi pengakhiran akad
+      out.potongan = row.sisaKewajiban - out.dasar;          // informasi: potongan dari sisa harga jual
+      out.pelunasan = out.dasar + out.penalti;
+      return out;
     } else {
       out.dasar = row.sisaPokok;
       out.penalti = row.sisaPokok * (opts.penaltyPct || 0);
@@ -947,7 +959,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
       '<div class="panel schedule"><h2>Jadwal Angsuran</h2><p class="desc">Bulan 1–' + n + ' · Skema ' + (flat ? 'Flat' : 'Efektif (Anuitas) — angsuran tetap, porsi pokok membesar') + '</p>';
     if (!flat) h += '<label class="toggle"><input type="checkbox" id="f2Toggle"' + (f2.showSisaPokok ? ' checked' : '') + '> Tampilkan sisa pokok pembiayaan</label>';
     h += '<div id="f2Sched">' + scheduleTable(res, { jenjang: false, kewajiban: !flat, sisaPokok: flat || f2.showSisaPokok }) + '</div>' +
-      '<p class="footnote"><b>Sisa Kewajiban</b> = jumlah seluruh angsuran yang belum dibayar (pokok + margin). Pada akad murabahah, ini adalah sisa harga jual yang terikat di akad; bila dilunasi sebelum jatuh tempo, lembaga wajib memberi potongan yang besarnya ditetapkan lembaga pembiayaan. Skema Flat menampilkan Sisa Pokok Pembiayaan.</p></div>';
+      '<p class="footnote"><b>Sisa Kewajiban</b> = jumlah seluruh angsuran yang belum dibayar (pokok + margin). Pada akad murabahah, ini adalah sisa harga jual sesuai akad; bila dilunasi sebelum jatuh tempo, lembaga wajib memberi potongan sehingga yang dibayar lebih kecil (harga jual tunai + tambahan harga sesuai waktu yang telah berjalan, dikurangi angsuran yang sudah dibayar). Skema Flat menampilkan Sisa Pokok Pembiayaan.</p></div>';
     $('f2Out').innerHTML = h;
     var t = $('f2Toggle');
     if (t) t.addEventListener('change', function () {
@@ -1086,7 +1098,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     h += '<div class="panel schedule"><h2>Jadwal Angsuran Step-Up</h2><p class="desc">Bulan 1–' + res.tenor + ' · Baris pergantian jenjang disorot.</p>' +
       '<label class="toggle"><input type="checkbox" id="f3Toggle"' + (f3ShowSisaPokok ? ' checked' : '') + '> Tampilkan sisa pokok pembiayaan</label>' +
       '<div id="f3Sched">' + scheduleTable(res, { jenjang: true, kewajiban: true, sisaPokok: f3ShowSisaPokok }) + '</div>' +
-      '<p class="footnote"><b>Sisa Kewajiban</b> = jumlah seluruh angsuran yang belum dibayar (pokok + margin). Pada akad murabahah, ini adalah sisa harga jual yang terikat di akad; bila dilunasi sebelum jatuh tempo, lembaga wajib memberi potongan yang besarnya ditetapkan lembaga pembiayaan.</p></div>';
+      '<p class="footnote"><b>Sisa Kewajiban</b> = jumlah seluruh angsuran yang belum dibayar (pokok + margin). Pada akad murabahah, ini adalah sisa harga jual sesuai akad; bila dilunasi sebelum jatuh tempo, lembaga wajib memberi potongan sehingga yang dibayar lebih kecil (harga jual tunai + tambahan harga sesuai waktu yang telah berjalan, dikurangi angsuran yang sudah dibayar).</p></div>';
     $('f3Out').innerHTML = h;
     $('f3Toggle').addEventListener('change', function () {
       f3ShowSisaPokok = this.checked;
@@ -1100,7 +1112,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
   /* ================= FITUR 4 ================= */
   var F4_DEFAULT = {
     harga: 500000000, dp: 100000000, tenor: 240,
-    tiers: [{ dari: 1, sampai: 240, rate: '10,5' }], aPot: '', aProv: '1', aAdmin: 1000000,
+    tiers: [{ dari: 1, sampai: 240, rate: '10,5' }], aTunai: '', aBiaya: '', aProv: '1', aAdmin: 1000000,
     bFix: '6,5', bFixM: 36, bFloat: '12', bMetode: 'anuitas', bPen: '5', bProv: '1', bAdmin: 1000000
   };
   var f4 = { metode: 'anuitas', sched: 'a', showSisaPokok: false, k: 60 };
@@ -1120,7 +1132,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
 
   function f4Fill(d) {
     setRupiah($('f4Harga'), d.harga); setRupiah($('f4Dp'), d.dp); $('f4Tenor').value = d.tenor;
-    f4Tiers.set(d.tiers); $('f4APot').value = d.aPot;
+    f4Tiers.set(d.tiers); $('f4ATunai').value = d.aTunai; $('f4ABiaya').value = d.aBiaya;
     $('f4AProv').value = d.aProv; setRupiah($('f4AAdmin'), d.aAdmin);
     $('f4BFix').value = d.bFix; $('f4BFixM').value = d.bFixM; $('f4BFloat').value = d.bFloat;
     f4.metode = d.bMetode; $('f4BPen').value = d.bPen; $('f4BProv').value = d.bProv; setRupiah($('f4BAdmin'), d.bAdmin);
@@ -1168,8 +1180,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     if (!errs.length) {
       segA = f4Tiers.read().map(function (t) { return { dari: parseIntStrict(t.dari), sampai: parseIntStrict(t.sampai), ratePa: parsePercent(t.rate), pasti: true }; });
       E.validateTiers(n, segA).forEach(function (m) { errs.push('A: ' + m); });
-      a.pot = $('f4APot').value.trim() ? readPct('f4APot', 'A: Asumsi potongan', errs, false) : null;   // null = tampilkan rentang
-      if (a.pot > 1) errs.push('A: Asumsi potongan maksimal 100% sisa margin.');
+      // Harga jual tunai diisi untuk seluruh aset (seperti di akad); bagian yang dibiayai = harga jual tunai − DP.
+      a.tunaiAset = $('f4ATunai').value.trim() ? parseRupiah($('f4ATunai').value) : null;
+      if (a.tunaiAset !== null && a.tunaiAset < harga) errs.push('A: Harga jual tunai tidak boleh lebih kecil dari harga aset.');
+      a.tunai = a.tunaiAset === null ? null : a.tunaiAset - dp;
+      a.biaya = parseRupiah($('f4ABiaya').value) || 0;
       b = readFixFloat('f4B', { fix: 'B: Bunga masa tetap', fixM: 'B: Lama masa tetap', flt: 'B: Asumsi bunga floating' }, n, errs);
       b.pen = readPct('f4BPen', 'B: Penalti pelunasan', errs, false);
       a.prov = readPct('f4AProv', 'A: Provisi', errs, false); b.prov = readPct('f4BProv', 'B: Provisi', errs, false);
@@ -1180,6 +1195,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
       segB = E.segmentsFixedThenFloat(n, b.fix, b.fixM, b.flt);
       var resA = E.scheduleSegments(P, n, segA, { metode: 'anuitas' });
       var resB = E.scheduleSegments(P, n, segB, { metode: f4.metode });
+      if (a.tunai !== null && a.tunai > resA.totalBayar + 0.5) throw new E.FinError('A: Harga jual tunai melebihi harga jual tidak tunai (DP + total angsuran).');
       var feeA = E.upfrontFees(P, { provisiPct: a.prov, adminRp: a.admin }), feeB = E.upfrontFees(P, { provisiPct: b.prov, adminRp: b.admin });
       var out = {
         P: P, n: n, metode: f4.metode, a: a, b: b, resA: resA, resB: resB, feeA: feeA, feeB: feeB,
@@ -1211,12 +1227,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
   function cmpRowFn(hA, hB) {
     return function (label, va, vb, cmp, cls) {
       var win = '', note = '';
-      if (cmp && cmp.aRange) {
-        var lo = cmp.aRange[0], hi = cmp.aRange[1];
-        if (cmp.b < lo - 0.5) { win = 'b'; note = (cmp.est ? '≈ ' : '') + '<span class="key b"></span>B · min. ' + fmtRp(lo - cmp.b); }
-        else if (cmp.b > hi + 0.5) { win = 'a'; note = (cmp.est ? '≈ ' : '') + '<span class="key a"></span>A · min. ' + fmtRp(cmp.b - hi); }
-        else note = 'Tergantung potongan';
-      } else if (cmp) {
+      if (cmp) {
         var d = cmp.b - cmp.a;
         if (Math.abs(d) < (cmp.tol || 0.5)) note = 'Sama';
         else {
@@ -1338,37 +1349,29 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
 
   function f4RenderSettle() {
     var o = f4Last, k = f4.k;
-    // Murabahah: batas atas = tanpa potongan, batas bawah = potongan 100% sisa margin (= sisa pokok).
-    var aHi = E.earlySettlement(o.resA, k, { basis: 'sisaKewajiban', potonganPct: 0 });
-    var aLo = E.earlySettlement(o.resA, k, { basis: 'sisaKewajiban', potonganPct: 1 });
-    var hasPot = o.a.pot !== null;
-    var sA = hasPot ? E.earlySettlement(o.resA, k, { basis: 'sisaKewajiban', potonganPct: o.a.pot }) : null;
+    var sA = E.earlySettlement(o.resA, k, { basis: 'murabahah', hargaTunai: o.a.tunai, biayaRp: o.a.biaya });
     var sB = E.earlySettlement(o.resB, k, { basis: 'sisaPokok', penaltyPct: o.b.pen });
-    var paidA = o.feeA + aHi.dibayar, totB = o.feeB + sB.dibayar + sB.pelunasan;
+    var totA = o.feeA + sA.dibayar + sA.pelunasan, totB = o.feeB + sB.dibayar + sB.pelunasan;
     var yr = k >= 12 ? ' <span class="muted">(tahun ke-' + Math.ceil(k / 12) + ')</span>' : '';
     $('f4KLabel').innerHTML = 'Bulan ' + k + yr;
     var row = cmpRowFn('A · Murabahah', 'B · Konvensional');
     var estB = o.resB.rows.slice(0, k).some(function (r) { return r.pasti === false; });
-    var rangeTxt = function (lo, hi) { return fmtRp(lo) + ' –<br>' + fmtRp(hi); };
+    var asumsi = o.a.tunai === null ? '<span class="sub2">asumsi: sama dengan pokok</span>' : '';
     var h = '<div class="scroll"><table class="sticky cmp" id="f4SettleTable"><thead><tr><th>Komponen</th><th class="num a"><span class="key a"></span>A · Murabahah</th><th class="num b"><span class="key b"></span>B · Konvensional</th><th class="num">Lebih rendah</th></tr></thead><tbody>' +
-      '<tr><td>Dasar pelunasan</td><td class="txt" data-h="A · Murabahah">Sisa kewajiban dikurangi potongan yang wajib diberikan lembaga</td><td class="txt" data-h="B · Konvensional">Sisa pokok + penalti</td><td class="d"></td></tr>' +
-      row('Batas atas<br><span class="muted">tanpa potongan (sisa kewajiban)</span>', fmtRp(aHi.pelunasan), '—', null) +
-      row('Batas bawah<br><span class="muted">potongan 100% sisa margin (sisa pokok)</span>', fmtRp(aLo.pelunasan), fmtRp(sB.dasar) + '<span class="sub2">sisa pokok</span>', null) +
-      row('Penalti', '—', fmtRp(sB.penalti) + ' <span class="muted">(' + fmtPct(o.b.pen, 2) + ')</span>', null) +
-      (hasPot ? row('Potongan <span class="muted">(asumsi Anda)</span>', '−' + fmtRp(sA.potongan) + ' <span class="muted">(' + fmtPct(o.a.pot, 2) + ' sisa margin)</span>', '—', null) : '') +
-      (hasPot
-        ? row('Jumlah pelunasan', fmtRp(sA.pelunasan), fmtRp(sB.pelunasan), rpCmp(sA.pelunasan, sB.pelunasan, estB), 'key-row')
-        : row('Jumlah pelunasan<br><span class="muted">rentang, tergantung potongan</span>', rangeTxt(aLo.pelunasan, aHi.pelunasan), fmtRp(sB.pelunasan),
-            { aRange: [Math.round(aLo.pelunasan), Math.round(aHi.pelunasan)], b: Math.round(sB.pelunasan), est: estB }, 'key-row')) +
-      row('Angsuran sudah dibayar <span class="muted">bln 1–' + k + '</span>', fmtRp(aHi.dibayar), (estB ? '≈ ' : '') + fmtRp(sB.dibayar), null) +
-      (hasPot
-        ? row('Total keluar<br><span class="muted">biaya di muka + angsuran + pelunasan</span>', fmtRp(paidA + sA.pelunasan), (estB ? '≈ ' : '') + fmtRp(totB), rpCmp(paidA + sA.pelunasan, totB, estB), 'key-row')
-        : row('Total keluar<br><span class="muted">biaya di muka + angsuran + pelunasan</span>', rangeTxt(paidA + aLo.pelunasan, paidA + aHi.pelunasan), (estB ? '≈ ' : '') + fmtRp(totB),
-            { aRange: [Math.round(paidA + aLo.pelunasan), Math.round(paidA + aHi.pelunasan)], b: Math.round(totB), est: estB }, 'key-row')) +
+      '<tr><td>Dasar pelunasan</td><td class="txt" data-h="A · Murabahah">Harga saat pelunasan (harga jual tunai + tambahan harga sesuai waktu yang telah berjalan) − angsuran yang sudah dibayar</td><td class="txt" data-h="B · Konvensional">Sisa pokok + penalti</td><td class="d"></td></tr>' +
+      row('Harga jual tunai<br><span class="muted">bagian yang dibiayai</span>', fmtRp(sA.hargaTunai) + asumsi, '—', null) +
+      row('Tambahan harga s.d. bulan ' + k + '<br><span class="muted">' + k + '/' + o.n + ' × (harga jual tidak tunai − harga jual tunai)</span>', '+' + fmtRp(sA.tambahan), '—', null) +
+      row('Angsuran sudah dibayar <span class="muted">bln 1–' + k + '</span>', '−' + fmtRp(sA.dibayar), '—', null) +
+      row('Sisa pokok', '—', fmtRp(sB.dasar), null) +
+      row('Biaya pelunasan', sA.penalti ? '+' + fmtRp(sA.penalti) + '<span class="sub2">biaya riil &amp; administrasi</span>' : '—',
+          '+' + fmtRp(sB.penalti) + '<span class="sub2">penalti ' + fmtPct(o.b.pen, 2) + '</span>', null) +
+      row('Jumlah pelunasan', fmtRp(sA.pelunasan), fmtRp(sB.pelunasan), rpCmp(sA.pelunasan, sB.pelunasan, estB), 'key-row') +
+      row('Potongan dari sisa kewajiban<br><span class="muted">informasi</span>', fmtRp(sA.potongan) + '<span class="sub2">dari ' + fmtRp(o.resA.rows[k - 1].sisaKewajiban) + '</span>', '—', null) +
+      row('Total keluar<br><span class="muted">biaya di muka + angsuran + pelunasan</span>', fmtRp(totA), (estB ? '≈ ' : '') + fmtRp(totB), rpCmp(totA, totB, estB), 'key-row') +
       '</tbody></table></div>';
-    h += '<p class="footnote">Murabahah: utang nasabah adalah sisa harga jual. Bila dilunasi sebelum jatuh tempo, lembaga wajib memberi potongan, tetapi besarnya ditetapkan lembaga dan tidak diperjanjikan di akad. ' +
-      'Karena itu A ditampilkan sebagai rentang: batas atas tanpa potongan, batas bawah setara sisa pokok, yaitu basis yang sama dengan B dan dengan praktik umum pelunasan pada akad MMQ.' +
-      (hasPot ? '' : ' Isi asumsi potongan di panel kiri untuk mendapatkan satu angka.') + '</p>';
+    h += '<p class="footnote">Murabahah: bila dilunasi sebelum jatuh tempo, lembaga wajib memberi potongan. Yang dibayar adalah harga saat pelunasan, yaitu harga jual tunai ditambah tambahan harga sebanding waktu yang telah berjalan, dikurangi angsuran yang sudah dibayar. ' +
+      'Harga jual tunai, harga jual tidak tunai, dan harga perolehan disepakati di akad. Lembaga boleh menambahkan biaya riil dan biaya administrasi bila pelunasan atas kehendak nasabah.' +
+      (o.a.tunai === null ? ' Harga jual tunai di sini diasumsikan sama dengan harga aset; isi sesuai akad Anda bila berbeda.' : '') + '</p>';
     $('f4Settle').innerHTML = h;
   }
 
@@ -1383,7 +1386,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     if (!isA) opts.periodeFmt = function (r) { return (r.pasti ? 'Tetap · ' : 'Floating ≈ ') + fmtPct(r.marginPa, 2); };
     $('f4Sched').innerHTML = scheduleTable(res, opts) +
       '<p class="footnote"><b>Sisa Kewajiban</b> = jumlah seluruh angsuran yang belum dibayar (pokok + ' + (isA ? 'margin' : 'bunga') + '). ' +
-      (isA ? 'Pada murabahah ini adalah sisa harga jual yang terikat di akad, dan menjadi dasar pelunasan dipercepat.'
+      (isA ? 'Pada murabahah ini adalah sisa harga jual sesuai akad. Bila dilunasi lebih cepat, jumlah yang dibayar lebih kecil karena lembaga wajib memberi potongan (lihat Pelunasan Dipercepat).'
            : 'Pada kredit konvensional angka ini hanya pembanding: pelunasan dipercepat dihitung dari sisa pokok + penalti, bukan dari sisa kewajiban.' +
              (est ? ' Karena bunga setelah masa tetap adalah asumsi, sisa kewajiban B adalah estimasi sejak bulan 1.' : '')) + '</p>';
   }
