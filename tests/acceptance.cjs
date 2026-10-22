@@ -189,6 +189,10 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
   const body = (await page.evaluate(() => document.querySelector('header').textContent + ' ' + document.querySelector('main').textContent)).toLowerCase();
   for (const w of ['cicilan', 'bunga', 'pinjaman', 'irr', 'dsn-mui', 'fatwa', 'rate']) check('tidak memuat "' + w + '"', new RegExp('\\b' + w + '\\b').test(body), false);
 
+  await page.evaluate(() => FinUI.showTab(1));
+  await page.click('#f1Reset');
+  check('F1 keterangan margin efektif ringkas', await page.$$eval('#f1Table tbody tr', (t) => t.find((tr) => tr.cells[0].innerText.trim() === 'Margin Efektif p.a.').cells[1].innerText.trim()), 'Dicari dari rumus anuitas*');
+  check('F1 catatan rumus anuitas', await txt(page, '#f1Footnote'), contains('Margin efektif p.a. = i × 12'));
   check('tidak memuat "Margin Total"', /margin total/i.test(body), false);
   check('tidak memuat label "BARU"', /\bBARU\b/.test(await page.evaluate(() => document.querySelector('main').textContent)), false);
   check('tidak ada error JavaScript', jsErrors.join('; '), '');

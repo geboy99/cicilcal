@@ -680,10 +680,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
           '<tr><td>Total Pembayaran</td><td>' + fmtRpExact(A) + ' × ' + n + '</td><td class="num">' + fmtRp(r.totalBayar) + '</td></tr>' +
           '<tr class="hl"><td>Total Margin</td><td>Total pembayaran − pokok</td><td class="num">' + fmtRp(r.totalMargin) + '</td></tr>' +
           '<tr><td>Total Margin (%)</td><td>Total margin ÷ pokok</td><td class="num">' + fmtPct(r.marginTotalPct, 4) + '</td></tr>' +
-          '<tr class="hl"><td>Margin Efektif p.a.</td><td>Margin yang membuat rumus anuitas menghasilkan angsuran yang dimasukkan</td><td class="num" data-k="efektif">' + fmtPct(r.marginEfektifPa, 4) + '</td></tr>' +
+          '<tr class="hl"><td>Margin Efektif p.a.</td><td>Dicari dari rumus anuitas*</td><td class="num" data-k="efektif">' + fmtPct(r.marginEfektifPa, 4) + '</td></tr>' +
           '<tr><td>Margin Efektif per bulan</td><td>Efektif p.a. ÷ 12</td><td class="num">' + fmtPct(r.marginEfektifPa / 12, 4) + '</td></tr>' +
           '<tr><td>Margin Flat p.a.</td><td>Total margin (%) ÷ tenor × 12</td><td class="num" data-k="flat">' + fmtPct(r.marginFlatPa, 4) + '</td></tr>' +
-        '</tbody></table></div></div>';
+        '</tbody></table></div>' +
+        '<p class="footnote" id="f1Footnote">* Margin efektif per bulan (i) adalah nilai yang membuat angsuran = Pokok × i(1+i)<sup>n</sup> ÷ ((1+i)<sup>n</sup> − 1) sama dengan angsuran yang dimasukkan (n = tenor). Margin efektif p.a. = i × 12.</p></div>';
   }
   $('f1Form').addEventListener('submit', function (e) { e.preventDefault(); f1Compute(); });
   $('f1Reset').addEventListener('click', function () { f1Fill(F1_DEFAULT); f1Compute(); });
