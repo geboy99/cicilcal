@@ -236,7 +236,7 @@
       <button type="button" data-tab="1" class="active">Margin</button>
       <button type="button" data-tab="2">Angsuran</button>
       <button type="button" data-tab="3">Step-Up</button>
-      <button type="button" data-tab="4">Banding</button>
+      <button type="button" data-tab="4">Bandingkan</button>
     </nav>
     <button type="button" class="print-btn" id="printBtn">Cetak / Simpan PDF</button>
   </div>
@@ -255,7 +255,7 @@
     <button type="button" class="tab active" role="tab" data-tab="1"><span class="long">Fitur 1: Hitung Margin dari Data Angsuran</span><span class="short">Margin</span></button>
     <button type="button" class="tab" role="tab" data-tab="2"><span class="long">Fitur 2: Angsuran &amp; Jadwal Angsuran</span><span class="short">Angsuran</span></button>
     <button type="button" class="tab" role="tab" data-tab="3"><span class="long">Fitur 3: Step-Up / Berjenjang</span><span class="short">Step-Up</span></button>
-    <button type="button" class="tab" role="tab" data-tab="4"><span class="long">Fitur 4: Bandingkan Syariah &amp; Konvensional</span><span class="short">Banding</span></button>
+    <button type="button" class="tab" role="tab" data-tab="4"><span class="long">Fitur 4: Bandingkan Syariah &amp; Konvensional</span><span class="short">Bandingkan</span></button>
   </div>
 
   <!-- ================= FITUR 1 ================= -->
@@ -813,7 +813,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
   }
 
   /* ================= FITUR 1 ================= */
-  var F1_DEFAULT = { harga: 150000000, dp: 30000000, angsuran: 4200000, tenor: 36 };
+  /* Contoh yang sama di semua fitur: harga 500 jt, DP 100 jt (pokok 400 jt), 240 bulan, margin efektif 10,5% p.a. */
+  var F1_DEFAULT = { harga: 500000000, dp: 100000000, angsuran: 3993519.55, tenor: 240 };
   function f1Fill(d) {
     setRupiah($('f1Harga'), d.harga); setRupiah($('f1Dp'), d.dp); setRupiah($('f1Angsuran'), d.angsuran);
     $('f1Tenor').value = d.tenor;
@@ -858,7 +859,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
   $('f1Reset').addEventListener('click', function () { f1Fill(F1_DEFAULT); f1Compute(); });
 
   /* ================= FITUR 2 ================= */
-  var F2_DEFAULT = { pokok: 100000000, tenor: 36, mode: 'pa', pa: 0.09, skema: 'anuitas' };
+  var F2_DEFAULT = { pokok: 400000000, tenor: 240, mode: 'pa', pa: 0.105, skema: 'anuitas' };
   var f2 = { mode: 'pa', skema: 'anuitas', pa: 0.09, total: 0, showSisaPokok: false };
 
   function f2Inputs() { return { P: parseRupiah($('f2Pokok').value), n: parseIntStrict($('f2Tenor').value) }; }
@@ -944,7 +945,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
   $('f2Reset').addEventListener('click', function () { f2Fill(F2_DEFAULT); f2Compute(); });
 
   /* ================= FITUR 3 ================= */
-  var F3_DEFAULT = { pokok: 300000000, tenor: 120, tiers: [{ dari: 1, sampai: 120, rate: '9' }], cmp: '' };
+  var F3_DEFAULT = { pokok: 400000000, tenor: 240, tiers: [{ dari: 1, sampai: 240, rate: '10,5' }], cmp: '' };
   var f3ShowSisaPokok = false;
 
   /* Editor daftar jenjang (dipakai Fitur 3 & Fitur 4). */
