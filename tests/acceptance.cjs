@@ -262,6 +262,32 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
     await page.$eval('#f4K', (el) => { el.value = '60'; el.dispatchEvent(new Event('input')); });
     check('slider pelunasan bulan 60', await txt(page, '#f4KLabel'), contains('Bulan 60'));
 
+    // Pelunasan murabahah sebagai rentang (bila isian potongan kosong).
+    if (((await page.getAttribute('#f4APot', 'placeholder')) || '').includes('rentang')) {
+      await page.click('#f4Reset');
+      await page.$eval('#f4K', (el) => { el.value = '60'; el.dispatchEvent(new Event('input')); });
+      const settle = (l) => page.$$eval('#f4SettleTable tbody tr', (t, x) => {
+        const tr = t.find((r) => r.cells[0].innerText.trim().startsWith(x)); return tr ? Array.from(tr.cells).map((c) => c.innerText.replace(/\s+/g, ' ').trim()) : null;
+      }, l);
+      const ref = await page.evaluate(() => {
+        const E = FinEngine, r = E.scheduleSegments(4e8, 240, [{ dari: 1, sampai: 240, ratePa: 0.105 }]);
+        const f = (x) => 'Rp ' + String(Math.round(x)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return { lo: f(r.rows[59].sisaPokok), hi: f(r.rows[59].sisaKewajiban) };
+      });
+      let srow = await settle('Jumlah pelunasan');
+      check('potongan kosong → A rentang sisa pokok – sisa kewajiban', srow[1], ref.lo + ' – ' + ref.hi);
+      check('B di atas batas bawah, di bawah batas atas → "Tergantung potongan"', srow[3], 'Tergantung potongan');
+      srow = await settle('Batas bawah');
+      check('batas bawah A = sisa pokok A', srow[1], ref.lo);
+      await page.fill('#f4APot', '100'); await page.click('#f4Form button[type=submit]');
+      await page.$eval('#f4K', (el) => { el.value = '60'; el.dispatchEvent(new Event('input')); });
+      srow = await settle('Jumlah pelunasan');
+      check('potongan 100% → A = sisa pokok, A lebih rendah (B kena penalti)', srow[1] === ref.lo && srow[3].includes('A ·'), true);
+      await page.fill('#f4APot', '150'); await page.click('#f4Form button[type=submit]');
+      check('potongan > 100% → error', await txt(page, '#f4Alert'), contains('maksimal 100%'));
+      await page.click('#f4Reset');
+    }
+
     // Isi dari Fitur 3.
     await f3Setup(page, '400.000.000', '264', [[1, 48, '8,34'], [49, 264, '13,14']]);
     await page.evaluate(() => FinUI.showTab(4));
