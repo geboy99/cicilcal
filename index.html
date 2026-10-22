@@ -6,7 +6,7 @@
 <title>FinSyariah Kalkulator</title>
 <meta name="description" content="Kalkulator pembiayaan syariah: hitung margin efektif & flat dari data angsuran, jadwal angsuran Flat / Efektif (Anuitas), dan simulasi angsuran berjenjang (step-up).">
 <style>
-  :root{--navy-900:#0f172a;--navy-800:#1e293b;--navy-700:#334155;--slate-600:#475569;--slate-500:#64748b;--slate-400:#94a3b8;--slate-300:#cbd5e1;--slate-200:#e2e8f0;--slate-100:#f1f5f9;--slate-50:#f8fafc;--em-700:#047857;--em-600:#059669;--em-500:#10b981;--em-50:#ecfdf5;--amber-700:#b45309;--amber-600:#d97706;--amber-50:#fffbeb;--amber-200:#fde68a;--red-700:#b91c1c;--red-50:#fef2f2;--red-200:#fecaca;--r-lg:14px;--r-md:10px;--r-sm:8px}
+  :root{--navy-900:#0f172a;--navy-800:#1e293b;--navy-700:#334155;--slate-600:#475569;--slate-500:#64748b;--slate-400:#94a3b8;--slate-300:#cbd5e1;--slate-200:#e2e8f0;--slate-100:#f1f5f9;--slate-50:#f8fafc;--em-700:#047857;--em-600:#059669;--em-500:#10b981;--em-50:#ecfdf5;--amber-700:#b45309;--amber-600:#d97706;--amber-50:#fffbeb;--amber-200:#fde68a;--red-700:#b91c1c;--red-50:#fef2f2;--red-200:#fecaca;--r-lg:14px;--r-md:10px;--r-sm:8px;--ser-a:#059669;--ser-b:#3b5bdb}
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--slate-50)}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--navy-900);line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -29,7 +29,7 @@
   .sub{color:var(--slate-600);font-size:.92rem;margin-bottom:1.5rem;max-width:70ch}
 
   /* ---------- Tab ---------- */
-  .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;background:var(--slate-200);padding:.35rem;border-radius:var(--r-md);margin-bottom:1.75rem}
+  .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;background:var(--slate-200);padding:.35rem;border-radius:var(--r-md);margin-bottom:1.75rem}
   .tab{min-height:44px;padding:.65rem .9rem;border:none;border-radius:var(--r-sm);background:transparent;color:var(--navy-700);font-weight:600;font-size:.86rem;line-height:1.3}
   .tab.active{background:var(--navy-900);color:#fff}
   .tab .short{display:none}
@@ -54,6 +54,7 @@
   .input{width:100%;min-width:0;min-height:44px;padding:.6rem .85rem;font-size:.95rem;font-weight:600;color:var(--navy-900)}
   input.input:not(.bare){border:1px solid var(--slate-200);border-radius:var(--r-sm);background:#fff}
   input.input:not(.bare):focus{outline:none;border-color:var(--em-600);box-shadow:0 0 0 3px rgba(5,150,105,.15)}
+  .input::placeholder{color:var(--slate-400);font-weight:500}
   .hint{font-size:.75rem;color:var(--slate-500);margin-top:.3rem}
   .opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
   .opt{min-height:44px;border:1px solid var(--slate-200);border-radius:var(--r-sm);padding:.6rem .7rem;font-size:.76rem;color:var(--slate-600);background:#fff;text-align:left;line-height:1.35;min-width:0}
@@ -121,6 +122,52 @@
   .addtier{font-size:.82rem;color:var(--em-700);font-weight:600;margin-top:.25rem;min-height:44px;display:inline-flex;align-items:center;background:none;border:none;padding:0 .25rem}
 
   .view{display:none}.view.active{display:block}
+
+  /* ---------- Fitur 4: perbandingan ---------- */
+  fieldset.prod{border:1px solid var(--slate-200);border-left:4px solid var(--c);border-radius:var(--r-md);padding:.9rem 1rem .1rem;margin-top:1rem;min-width:0}
+  .prod-a{--c:var(--ser-a)}.prod-b{--c:var(--ser-b)}
+  fieldset.prod legend{font-weight:700;font-size:.9rem;padding:0 .4rem;color:var(--navy-900)}
+  .key{display:inline-block;width:16px;height:3px;border-radius:2px;background:var(--c);vertical-align:middle;margin-right:.4rem}
+  .key.a{--c:var(--ser-a)}.key.b{--c:var(--ser-b)}
+  .key.dash{background:repeating-linear-gradient(90deg,var(--slate-500) 0 5px,transparent 5px 8px)}
+  details.fees{margin-bottom:.75rem}
+  details.fees summary{cursor:pointer;font-size:.83rem;font-weight:600;color:var(--navy-800);min-height:44px;display:flex;align-items:center}
+  details.fees[open] summary{margin-bottom:.25rem}
+  .import{font-size:.78rem;color:var(--slate-500);display:flex;flex-wrap:wrap;align-items:center;gap:0 .25rem}
+  .linkbtn{background:none;border:none;color:var(--em-700);font-weight:600;font-size:.8rem;min-height:44px;padding:0 .25rem;text-decoration:underline;text-underline-offset:2px}
+  table.cmp td{vertical-align:top}
+  table.cmp td.txt{white-space:normal;min-width:150px;font-size:.78rem;color:var(--slate-600)}
+  table.cmp td:first-child{white-space:normal;min-width:110px}
+  table.cmp .sub2{display:block;font-weight:500;color:var(--slate-500);font-size:.74rem}
+  table.cmp th.a,table.cmp th.b{white-space:nowrap}
+  .muted{color:var(--slate-500);font-weight:500}
+  table.cmp td.win{font-weight:700;color:var(--navy-900)}
+  table.cmp td.win.a{background:rgba(5,150,105,.09)!important;box-shadow:inset 3px 0 0 var(--ser-a)}
+  table.cmp td.win.b{background:rgba(59,91,219,.09)!important;box-shadow:inset 3px 0 0 var(--ser-b)}
+  table.cmp td.d{font-weight:600;color:var(--slate-600);white-space:nowrap}
+  table.cmp tr.key-row td:first-child{font-weight:700}
+  .verdicts{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.25rem}
+  .verdict{background:#fff;border:1px solid var(--slate-200);border-top:4px solid var(--c);border-radius:var(--r-md);padding:.85rem 1rem;min-width:0;--c:var(--slate-300)}
+  .verdict.a{--c:var(--ser-a)}.verdict.b{--c:var(--ser-b)}
+  .verdict .q{font-size:.75rem;font-weight:600;color:var(--slate-500)}
+  .verdict .w{font-size:1.05rem;font-weight:700;margin:.15rem 0 .2rem;display:flex;align-items:center;gap:.1rem}
+  .verdict .s{font-size:.78rem;color:var(--slate-600)}
+  tr.est td{color:var(--slate-500);font-style:italic}
+  .legend{display:flex;gap:.4rem 1.1rem;flex-wrap:wrap;font-size:.78rem;color:var(--slate-600);margin-bottom:.5rem}
+  .chart-wrap{position:relative;touch-action:pan-y}
+  .chart-wrap svg{display:block;width:100%;height:auto;overflow:visible}
+  .chart-wrap svg:focus{outline:2px solid var(--em-600);outline-offset:4px;border-radius:4px}
+  .chart-tip{position:absolute;top:0;left:0;pointer-events:none;background:#fff;border:1px solid var(--slate-200);border-radius:var(--r-sm);box-shadow:0 4px 14px rgba(15,23,42,.12);padding:.45rem .65rem;font-size:.75rem;white-space:nowrap;z-index:5}
+  .chart-tip .t{color:var(--slate-500);margin-bottom:.15rem}
+  .chart-tip .r{display:flex;align-items:center;gap:.45rem}
+  .chart-tip .r b{font-variant-numeric:tabular-nums;color:var(--navy-900)}
+  .chart-tip .r span{color:var(--slate-500)}
+  .range-row{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem}
+  .range-row input[type=range]{flex:1;min-width:0;min-height:44px;accent-color:var(--navy-900)}
+  .range-row .k{font-weight:700;font-size:.9rem;white-space:nowrap}
+  .seg{display:inline-grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-bottom:.75rem}
+  .seg .opt{padding:.45rem .8rem}
+  .disclaimer{font-size:.75rem;color:var(--slate-500);margin-top:1rem}
   .site-foot{margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--slate-200);font-size:.75rem;color:var(--slate-500)}
 
   /* ---------- Tablet: 700–1023px ---------- */
@@ -129,6 +176,7 @@
     .workspace-grid{grid-template-columns:1fr;gap:1.25rem}
     .fields{display:grid;grid-template-columns:1fr 1fr;column-gap:1rem}
     .fields .full{grid-column:1/-1}
+    .tab .long{display:none}.tab .short{display:inline}
   }
   /* ---------- HP: < 700px ---------- */
   @media (max-width:699px){
@@ -139,8 +187,8 @@
     .sub{font-size:.84rem;margin-bottom:1rem}
     .tabs{gap:.3rem;padding:.3rem;margin-bottom:1.1rem}
     .tab{font-size:.8rem;padding:.55rem .4rem}
-    .tab .long{display:none}.tab .short{display:inline}
     .panel{padding:1.1rem}
+    fieldset.prod{padding:.8rem .8rem .1rem}
     .fields{display:block}
     .input,.tier-row .input{font-size:16px}           /* cegah zoom otomatis iOS */
     .hero{padding:1.1rem}
@@ -154,13 +202,25 @@
     table{font-size:.78rem}
     th,td{padding:.5rem .6rem}
     .swipe{display:block}
+    table.cmp,table.cmp tbody{display:block}
+    table.cmp thead{display:none}
+    table.cmp tr{display:grid;grid-template-columns:1fr 1fr;column-gap:.75rem;row-gap:.15rem;padding:.6rem .75rem;border-bottom:1px solid var(--slate-100)}
+    table.cmp tr.hl{background:var(--em-50)}
+    table.cmp td,table.cmp.sticky td:first-child{display:block;position:static;border:none;padding:0;background:transparent!important;box-shadow:none;white-space:normal;text-align:left;min-width:0}
+    table.cmp td:first-child{grid-column:1/-1;font-weight:600;color:var(--navy-900)}
+    table.cmp td[data-h]::before{content:attr(data-h);display:block;font-size:.68rem;font-weight:600;color:var(--slate-500);font-style:normal}
+    table.cmp td.d{grid-column:1/-1;font-size:.74rem;white-space:normal}
+    table.cmp td.win{padding:.15rem .35rem;margin:0 -.35rem;border-radius:4px}
+    .verdicts{grid-template-columns:1fr;gap:.6rem;margin-bottom:1.1rem}
+    table.cmp td.d:empty{display:none}
   }
 
   /* ---------- Cetak / PDF ---------- */
   @media print{
     @page{margin:12mm}
     html,body{background:#fff}
-    .topbar,.tabs,.sub,h1,.actions,.toggle,.swipe,.addtier,.x,.site-foot,.no-print{display:none!important}
+    .topbar,.tabs,.sub,h1,.actions,.toggle,.swipe,.addtier,.x,.site-foot,.no-print,.import,.chart-tip,.seg{display:none!important}
+    details.fees>*{display:block}
     .print-header{display:block;border-bottom:2px solid var(--navy-900);padding-bottom:.5rem;margin-bottom:1rem}
     .print-header .ph-title{font-size:1.2rem;font-weight:700}
     .print-header .ph-meta{font-size:.8rem;color:var(--slate-600)}
@@ -190,6 +250,7 @@
       <button type="button" data-tab="1" class="active">Margin</button>
       <button type="button" data-tab="2">Angsuran</button>
       <button type="button" data-tab="3">Step-Up</button>
+      <button type="button" data-tab="4">Bandingkan</button>
     </nav>
     <button type="button" class="print-btn" id="printBtn">Cetak / Simpan PDF</button>
   </div>
@@ -202,12 +263,13 @@
   </div>
 
   <h1>Kalkulator Pembiayaan Syariah &amp; Finansial</h1>
-  <p class="sub">Hitung margin efektif dan flat dari data angsuran, simulasikan angsuran dengan skema Flat atau Efektif (Anuitas), dan simulasikan angsuran berjenjang (step-up).</p>
+  <p class="sub">Hitung margin efektif dan flat dari data angsuran, simulasikan angsuran dengan skema Flat atau Efektif (Anuitas), simulasikan angsuran berjenjang (step-up), serta bandingkan pembiayaan syariah dengan kredit konvensional.</p>
 
   <div class="tabs" role="tablist">
     <button type="button" class="tab active" role="tab" data-tab="1"><span class="long">Fitur 1: Hitung Margin dari Data Angsuran</span><span class="short">Margin</span></button>
     <button type="button" class="tab" role="tab" data-tab="2"><span class="long">Fitur 2: Angsuran &amp; Jadwal Angsuran</span><span class="short">Angsuran</span></button>
     <button type="button" class="tab" role="tab" data-tab="3"><span class="long">Fitur 3: Step-Up / Berjenjang</span><span class="short">Step-Up</span></button>
+    <button type="button" class="tab" role="tab" data-tab="4"><span class="long">Fitur 4: Bandingkan Syariah &amp; Konvensional</span><span class="short">Bandingkan</span></button>
   </div>
 
   <!-- ================= FITUR 1 ================= -->
@@ -297,6 +359,58 @@
       </form>
 
       <div id="f3Out"></div>
+    </div>
+  </section>
+
+  <!-- ================= FITUR 4 ================= -->
+  <section class="view" id="v4" data-title="Bandingkan Syariah &amp; Konvensional">
+    <div class="workspace-grid">
+      <form class="panel" id="f4Form" novalidate>
+        <h2>Parameter Perbandingan</h2>
+        <p class="desc">Harga, uang muka, dan tenor dipakai sama untuk kedua produk agar perbandingan adil.</p>
+        <div class="fields">
+          <div class="fg"><label class="l" for="f4Harga">Harga Aset</label><div class="input-wrap"><span class="adorn pre">Rp</span><input class="input bare" id="f4Harga" inputmode="numeric" autocomplete="off" data-rupiah></div></div>
+          <div class="fg"><label class="l" for="f4Dp">Uang Muka / DP</label><div class="input-wrap"><span class="adorn pre">Rp</span><input class="input bare" id="f4Dp" inputmode="numeric" autocomplete="off" data-rupiah></div></div>
+          <div class="fg full"><label class="l" for="f4Tenor">Tenor</label><div class="input-wrap"><input class="input bare" id="f4Tenor" inputmode="numeric" autocomplete="off" data-int><span class="adorn suf">Bulan</span></div><div class="hint" id="f4TenorHint"></div></div>
+        </div>
+
+        <fieldset class="prod prod-a">
+          <legend><span class="key"></span>A · Syariah (Murabahah)</legend>
+          <div class="fields">
+            <div class="fg full">
+              <span class="l">Jenjang Margin Efektif</span>
+              <div class="tier-head"><span>Dari bulan</span><span>Sampai bulan</span><span>Margin p.a. (%)</span><span></span></div>
+              <div id="f4ATiers"></div>
+              <button type="button" class="addtier" id="f4AAdd">+ Tambah jenjang</button>
+              <div class="hint">Satu jenjang = margin tetap seluruh tenor. Lebih dari satu = step-up yang tertulis di akad.</div>
+              <div class="import">Isi dari: <button type="button" class="linkbtn" id="f4From2">Fitur 2</button><button type="button" class="linkbtn" id="f4From3">Fitur 3</button></div>
+            </div>
+            <div class="fg full"><label class="l" for="f4APot">Asumsi potongan pelunasan dipercepat <span class="muted">(opsional)</span></label><div class="input-wrap"><input class="input bare" id="f4APot" inputmode="decimal" autocomplete="off" data-pct placeholder="kosong = rentang"><span class="adorn suf">% sisa margin</span></div><div class="hint">Lembaga wajib memberi potongan bila dilunasi sebelum jatuh tempo, tetapi besarnya ditetapkan lembaga dan tidak diperjanjikan di akad. Kosongkan untuk melihat rentangnya.</div></div>
+            <details class="fees fg full"><summary>Biaya di muka (provisi &amp; administrasi)</summary><div class="fields"><div class="fg"><label class="l" for="f4AProv">Provisi</label><div class="input-wrap"><input class="input bare" id="f4AProv" inputmode="decimal" autocomplete="off" data-pct><span class="adorn suf">% pokok</span></div></div><div class="fg"><label class="l" for="f4AAdmin">Administrasi &amp; lainnya</label><div class="input-wrap"><span class="adorn pre">Rp</span><input class="input bare" id="f4AAdmin" inputmode="numeric" autocomplete="off" data-rupiah></div></div></div></details>
+          </div>
+        </fieldset>
+
+        <fieldset class="prod prod-b">
+          <legend><span class="key"></span>B · Kredit Konvensional</legend>
+          <div class="fields">
+            <div class="fg"><label class="l" for="f4BFix">Bunga masa tetap (fixed)</label><div class="input-wrap"><input class="input bare" id="f4BFix" inputmode="decimal" autocomplete="off" data-pct><span class="adorn suf">% p.a.</span></div></div>
+            <div class="fg"><label class="l" for="f4BFixM">Lama masa tetap</label><div class="input-wrap"><input class="input bare" id="f4BFixM" inputmode="numeric" autocomplete="off" data-int><span class="adorn suf">Bulan</span></div></div>
+            <div class="fg full"><label class="l" for="f4BFloat">Asumsi bunga floating</label><div class="input-wrap"><input class="input bare" id="f4BFloat" inputmode="decimal" autocomplete="off" data-pct><span class="adorn suf">% p.a.</span></div><div class="hint">Setelah masa tetap, bunga mengikuti acuan pasar + spread dan dapat berubah sewaktu-waktu. Isi sesuai perkiraan Anda.</div></div>
+            <div class="fg full"><span class="l">Metode</span>
+              <div class="opt-grid" id="f4BMetode">
+                <button type="button" class="opt" data-metode="anuitas"><b>Anuitas</b>Angsuran tetap per periode</button>
+                <button type="button" class="opt" data-metode="pokokTetap"><b>Efektif menurun</b>Pokok tetap, angsuran turun</button>
+              </div></div>
+            <div class="fg full"><label class="l" for="f4BPen">Penalti pelunasan dipercepat</label><div class="input-wrap"><input class="input bare" id="f4BPen" inputmode="decimal" autocomplete="off" data-pct><span class="adorn suf">% dilunasi</span></div></div>
+            <details class="fees fg full"><summary>Biaya di muka (provisi &amp; administrasi)</summary><div class="fields"><div class="fg"><label class="l" for="f4BProv">Provisi</label><div class="input-wrap"><input class="input bare" id="f4BProv" inputmode="decimal" autocomplete="off" data-pct><span class="adorn suf">% pokok</span></div></div><div class="fg"><label class="l" for="f4BAdmin">Administrasi &amp; lainnya</label><div class="input-wrap"><span class="adorn pre">Rp</span><input class="input bare" id="f4BAdmin" inputmode="numeric" autocomplete="off" data-rupiah></div></div></div></details>
+          </div>
+        </fieldset>
+
+        <div class="alert-box" id="f4Alert" role="alert" hidden></div>
+        <div class="actions"><button type="button" class="btn" id="f4Reset">Reset</button><button type="submit" class="btn em">Bandingkan</button></div>
+      </form>
+
+      <div id="f4Out"></div>
     </div>
   </section>
 
@@ -445,25 +559,88 @@ var FinEngine = (function () {
     return errs;
   }
 
-  /* Step-up: di awal jenjang k, A_k = PMT(r_k, n − dari_k + 1, sisa pokok saat itu). */
-  function scheduleStepUp(P, n, tiers) {
+  /* Jadwal bersegmen. Di awal segmen k angsuran dihitung ulang dari sisa pokok.
+     metode 'anuitas'   : A_k = PMT(r_k, n − dari_k + 1, sisa pokok saat itu), tetap sepanjang segmen.
+     metode 'pokokTetap': pokok P/n tiap bulan, margin/bunga dari sisa pokok (efektif menurun).
+     segments: [{ dari, sampai, ratePa, pasti }] — pasti:false menandai asumsi (mis. floating). */
+  function scheduleSegments(P, n, segments, opts) {
     checkBasic(P, n);
-    var errs = validateTiers(n, tiers);
+    var metode = (opts && opts.metode) || 'anuitas';
+    var errs = validateTiers(n, segments);
     if (errs.length) { var e = new FinError(errs[0]); e.list = errs; throw e; }
-    var rows = [], sisa = P, summary = [];
-    tiers.forEach(function (t, idx) {
-      var A = pmt(t.ratePa, n - t.dari + 1, sisa), i = t.ratePa / 12;
-      summary.push({ jenjang: idx + 1, dari: t.dari, sampai: t.sampai, marginPa: t.ratePa, angsuran: A });
+    var rows = [], sisa = P, summary = [], pokokTetap = P / n;
+    segments.forEach(function (t, idx) {
+      var i = t.ratePa / 12, pasti = t.pasti !== false;
+      var A = metode === 'anuitas' ? pmt(t.ratePa, n - t.dari + 1, sisa) : pokokTetap + sisa * i;
+      summary.push({ jenjang: idx + 1, dari: t.dari, sampai: t.sampai, marginPa: t.ratePa, angsuran: A, pasti: pasti });
       for (var k = t.dari; k <= t.sampai; k++) {
-        var margin = sisa * i, pokok = A - margin;
+        var margin = sisa * i, pokok = metode === 'anuitas' ? A - margin : pokokTetap;
         sisa -= pokok;
-        rows.push({ bulan: k, jenjang: idx + 1, marginPa: t.ratePa, pokok: pokok, margin: margin, angsuran: A, awalJenjang: k === t.dari });
+        rows.push({ bulan: k, jenjang: idx + 1, marginPa: t.ratePa, pokok: pokok, margin: margin,
+          angsuran: metode === 'anuitas' ? A : pokok + margin, awalJenjang: k === t.dari, pasti: pasti });
       }
     });
-    var res = finalize(P, rows, { skema: 'stepup', tiers: summary });
-    var cfs = [-P].concat(rows.map(function (r) { return r.angsuran; }));
-    res.marginEfektifPa = irr(cfs) * 12;
+    var res = finalize(P, rows, { skema: 'segmen', metode: metode, tiers: summary });
+    res.marginEfektifPa = irr([-P].concat(rows.map(function (r) { return r.angsuran; }))) * 12;
     return res;
+  }
+
+  /* Step-up: segmen anuitas yang seluruhnya tertulis di akad. */
+  function scheduleStepUp(P, n, tiers) {
+    var res = scheduleSegments(P, n, tiers, { metode: 'anuitas' });
+    res.skema = 'stepup';
+    return res;
+  }
+
+  /* Masa tetap lalu floating (konvensional). fixMonths ≥ n → tetap seluruh tenor. */
+  function segmentsFixedThenFloat(n, fixRate, fixMonths, floatRate) {
+    if (fixMonths >= n) return [{ dari: 1, sampai: n, ratePa: fixRate, pasti: true }];
+    if (fixMonths <= 0) return [{ dari: 1, sampai: n, ratePa: floatRate, pasti: false }];
+    return [{ dari: 1, sampai: fixMonths, ratePa: fixRate, pasti: true },
+            { dari: fixMonths + 1, sampai: n, ratePa: floatRate, pasti: false }];
+  }
+
+  /* Biaya di muka (Rp): provisi % dari pokok + admin + lainnya. */
+  function upfrontFees(P, fees) {
+    return P * (fees.provisiPct || 0) + (fees.adminRp || 0) + (fees.lainRp || 0);
+  }
+
+  /* Biaya efektif p.a. termasuk biaya di muka: dana diterima = pokok − biaya di muka. */
+  function effectiveCostWithFees(res, feesRp) {
+    if (feesRp >= res.pokok) throw new FinError('Biaya di muka tidak boleh melebihi pokok.');
+    return irr([-(res.pokok - feesRp)].concat(res.rows.map(function (r) { return r.angsuran; }))) * 12;
+  }
+
+  /* Pelunasan dipercepat setelah angsuran bulan ke-k dibayar.
+     basis 'sisaKewajiban' (murabahah): sisa harga jual − potongan (asumsi, % dari sisa margin belum jatuh tempo).
+     basis 'sisaPokok' (konvensional): sisa pokok + penalti % dari yang dilunasi. */
+  function earlySettlement(res, k, opts) {
+    if (!(k >= 1 && k < res.tenor)) throw new FinError('Bulan pelunasan harus antara 1 dan ' + (res.tenor - 1) + '.');
+    var dibayar = 0, sisaMargin = 0, row = res.rows[k - 1];
+    res.rows.forEach(function (r, j) { if (j < k) dibayar += r.angsuran; else sisaMargin += r.margin; });
+    var out = { bulan: k, basis: opts.basis, dibayar: dibayar, sisaMargin: sisaMargin, penalti: 0, potongan: 0 };
+    if (opts.basis === 'sisaKewajiban') {
+      out.dasar = row.sisaKewajiban;
+      out.potongan = sisaMargin * (opts.potonganPct || 0);
+    } else {
+      out.dasar = row.sisaPokok;
+      out.penalti = row.sisaPokok * (opts.penaltyPct || 0);
+    }
+    out.pelunasan = out.dasar + out.penalti - out.potongan;
+    return out;
+  }
+
+  /* Titik impas: rate r sehingga costAt(r) = target. costAt naik monoton terhadap r. */
+  function breakEvenRate(costAt, target) {
+    if (costAt(0) >= target) return { status: 'diAtasPadaNol', rate: 0 };
+    var lo = 0, hi = 1;
+    while (costAt(hi) < target && hi < 64) hi *= 2;
+    if (costAt(hi) < target) return { status: 'tidakAda', rate: null };
+    for (var k = 0; k < 100; k++) {
+      var mid = (lo + hi) / 2;
+      if (costAt(mid) < target) lo = mid; else hi = mid;
+    }
+    return { status: 'ok', rate: (lo + hi) / 2 };
   }
 
   /* Fitur 1: analisis data angsuran. */
@@ -497,6 +674,8 @@ var FinEngine = (function () {
     FinError: FinError,
     pmt: pmt, solveRateFromPayment: solveRateFromPayment, solveRateFromTotalMargin: solveRateFromTotalMargin, irr: irr,
     scheduleFlat: scheduleFlat, scheduleAnnuity: scheduleAnnuity, scheduleStepUp: scheduleStepUp, validateTiers: validateTiers,
+    scheduleSegments: scheduleSegments, segmentsFixedThenFloat: segmentsFixedThenFloat, upfrontFees: upfrontFees,
+    effectiveCostWithFees: effectiveCostWithFees, earlySettlement: earlySettlement, breakEvenRate: breakEvenRate,
     analyzePayment: analyzePayment, totalFromPa: totalFromPa, paFromTotal: paFromTotal
   };
 })();
@@ -608,6 +787,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     document.querySelectorAll('.view').forEach(function (v, i) { v.classList.toggle('active', i === n - 1); });
     document.querySelectorAll('[data-tab]').forEach(function (t) { t.classList.toggle('active', +t.getAttribute('data-tab') === n); });
     $('phFitur').innerHTML = $('v' + n).getAttribute('data-title');
+    if (n === 4 && typeof f4DrawChart === 'function') f4DrawChart();
   }
   document.querySelectorAll('[data-tab]').forEach(function (b) {
     b.addEventListener('click', function () { showTab(+b.getAttribute('data-tab')); });
@@ -620,18 +800,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
   /* ---------- Komponen tabel jadwal ---------- */
   function scheduleTable(res, opts) {
     var showJenjang = opts.jenjang, showKewajiban = opts.kewajiban, showSisaPokok = opts.sisaPokok;
+    var periodeLabel = opts.periodeLabel || 'Jenjang', marginLabel = opts.marginLabel || 'Angsuran Margin';
+    var periodeFmt = opts.periodeFmt || function (r) { return r.jenjang + ' · ' + fmtPct(r.marginPa, 2); };
     var h = '<div class="swipe">Geser tabel ke samping →</div><div class="scroll"><table class="sticky"><thead><tr><th>Bulan</th>';
-    if (showJenjang) h += '<th>Jenjang</th>';
-    h += '<th class="num">Angsuran Pokok</th><th class="num">Angsuran Margin</th><th class="num">Total Angsuran</th>';
-    if (showKewajiban) h += '<th class="num">Sisa Kewajiban</th>';
-    if (showSisaPokok) h += '<th class="num">Sisa Pokok Pembiayaan</th>';
+    if (showJenjang) h += '<th>' + periodeLabel + '</th>';
+    h += '<th class="num">Angsuran Pokok</th><th class="num">' + marginLabel + '</th><th class="num">Total Angsuran</th>';
+    if (showKewajiban) h += '<th class="num">' + (opts.kewajibanLabel || 'Sisa Kewajiban') + '</th>';
+    if (showSisaPokok) h += '<th class="num">' + (opts.sisaPokokLabel || 'Sisa Pokok Pembiayaan') + '</th>';
     h += '</tr></thead><tbody>';
     var sumP = 0, sumM = 0, sumA = 0;
     res.rows.forEach(function (r) {
       sumP += r.pokok; sumM += r.margin; sumA += r.angsuran;
-      var tier = showJenjang && r.awalJenjang && r.jenjang > 1;
-      h += '<tr' + (tier ? ' class="tier"' : '') + '><td>' + r.bulan + '</td>';
-      if (showJenjang) h += '<td>' + r.jenjang + ' · ' + fmtPct(r.marginPa, 2) + '</td>';
+      var cls = (showJenjang && r.awalJenjang && r.jenjang > 1 ? 'tier ' : '') + (opts.markEst && r.pasti === false ? 'est' : '');
+      h += '<tr' + (cls ? ' class="' + cls.trim() + '"' : '') + '><td>' + r.bulan + '</td>';
+      if (showJenjang) h += '<td>' + periodeFmt(r) + '</td>';
       h += '<td class="num">' + fmtRp(r.pokok) + '</td><td class="num">' + fmtRp(r.margin) + '</td><td class="num">' + fmtRp(r.angsuran) + '</td>';
       if (showKewajiban) h += '<td class="num">' + fmtRp(r.sisaKewajiban) + '</td>';
       if (showSisaPokok) h += '<td class="num">' + fmtRp(r.sisaPokok) + '</td>';
@@ -645,7 +827,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
   }
 
   /* ================= FITUR 1 ================= */
-  var F1_DEFAULT = { harga: 150000000, dp: 30000000, angsuran: 4200000, tenor: 36 };
+  /* Contoh yang sama di semua fitur: harga 500 jt, DP 100 jt (pokok 400 jt), 240 bulan, margin efektif 10,5% p.a. */
+  var F1_DEFAULT = { harga: 500000000, dp: 100000000, angsuran: 3993519.55, tenor: 240 };
   function f1Fill(d) {
     setRupiah($('f1Harga'), d.harga); setRupiah($('f1Dp'), d.dp); setRupiah($('f1Angsuran'), d.angsuran);
     $('f1Tenor').value = d.tenor;
@@ -690,7 +873,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
   $('f1Reset').addEventListener('click', function () { f1Fill(F1_DEFAULT); f1Compute(); });
 
   /* ================= FITUR 2 ================= */
-  var F2_DEFAULT = { pokok: 100000000, tenor: 36, mode: 'pa', pa: 0.09, skema: 'anuitas' };
+  var F2_DEFAULT = { pokok: 400000000, tenor: 240, mode: 'pa', pa: 0.105, skema: 'anuitas' };
   var f2 = { mode: 'pa', skema: 'anuitas', pa: 0.09, total: 0, showSisaPokok: false };
 
   function f2Inputs() { return { P: parseRupiah($('f2Pokok').value), n: parseIntStrict($('f2Tenor').value) }; }
@@ -764,7 +947,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
       '<div class="panel schedule"><h2>Jadwal Angsuran</h2><p class="desc">Bulan 1–' + n + ' · Skema ' + (flat ? 'Flat' : 'Efektif (Anuitas) — angsuran tetap, porsi pokok membesar') + '</p>';
     if (!flat) h += '<label class="toggle"><input type="checkbox" id="f2Toggle"' + (f2.showSisaPokok ? ' checked' : '') + '> Tampilkan sisa pokok pembiayaan</label>';
     h += '<div id="f2Sched">' + scheduleTable(res, { jenjang: false, kewajiban: !flat, sisaPokok: flat || f2.showSisaPokok }) + '</div>' +
-      '<p class="footnote"><b>Sisa Kewajiban</b> = jumlah seluruh angsuran yang belum dibayar (pokok + margin). Pada akad murabahah, ini adalah sisa harga jual yang terikat di akad; potongan margin saat pelunasan dipercepat mengikuti kebijakan lembaga pembiayaan. Skema Flat menampilkan Sisa Pokok Pembiayaan.</p></div>';
+      '<p class="footnote"><b>Sisa Kewajiban</b> = jumlah seluruh angsuran yang belum dibayar (pokok + margin). Pada akad murabahah, ini adalah sisa harga jual yang terikat di akad; bila dilunasi sebelum jatuh tempo, lembaga wajib memberi potongan yang besarnya ditetapkan lembaga pembiayaan. Skema Flat menampilkan Sisa Pokok Pembiayaan.</p></div>';
     $('f2Out').innerHTML = h;
     var t = $('f2Toggle');
     if (t) t.addEventListener('change', function () {
@@ -776,9 +959,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
   $('f2Reset').addEventListener('click', function () { f2Fill(F2_DEFAULT); f2Compute(); });
 
   /* ================= FITUR 3 ================= */
-  var F3_DEFAULT = { pokok: 300000000, tenor: 120, tiers: [{ dari: 1, sampai: 120, rate: '9' }], cmp: '' };
+  var F3_DEFAULT = { pokok: 400000000, tenor: 240, tiers: [{ dari: 1, sampai: 240, rate: '10,5' }], cmp: '' };
   var f3ShowSisaPokok = false;
 
+  /* Editor daftar jenjang (dipakai Fitur 3 & Fitur 4). */
   function tierRowHtml(t) {
     return '<div class="tier-row">' +
       '<input class="input t-dari" inputmode="numeric" aria-label="Dari bulan" value="' + esc(t.dari) + '">' +
@@ -786,70 +970,74 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
       '<input class="input t-rate" inputmode="decimal" aria-label="Margin p.a. (%)" value="' + esc(t.rate) + '">' +
       '<button type="button" class="x" aria-label="Hapus jenjang" title="Hapus jenjang">×</button></div>';
   }
-  function f3ReadTiersRaw() {
-    return Array.prototype.map.call(document.querySelectorAll('#f3Tiers .tier-row'), function (row) {
-      return { dari: row.querySelector('.t-dari').value, sampai: row.querySelector('.t-sampai').value, rate: row.querySelector('.t-rate').value };
-    });
-  }
-  function f3SetTiers(list) {
-    $('f3Tiers').innerHTML = list.map(tierRowHtml).join('');
-    var rows = document.querySelectorAll('#f3Tiers .tier-row');
-    rows.forEach(function (row, idx) {
-      row.querySelector('.x').disabled = rows.length === 1;
-      row.querySelector('.x').addEventListener('click', function () { f3Remove(idx); });
-      ['.t-dari', '.t-sampai'].forEach(function (s) {
-        var el = row.querySelector(s);
-        el.addEventListener('input', function () { var v = el.value.replace(/\D/g, ''); if (v !== el.value) el.value = v; });
+  function TierEditor(container, addBtn, tenorInput) {
+    function read() {
+      return Array.prototype.map.call(container.querySelectorAll('.tier-row'), function (row) {
+        return { dari: row.querySelector('.t-dari').value, sampai: row.querySelector('.t-sampai').value, rate: row.querySelector('.t-rate').value };
       });
-      var r = row.querySelector('.t-rate');
-      r.addEventListener('input', function () { var v = r.value.replace(/[^\d,.]/g, ''); if (v !== r.value) r.value = v; });
+    }
+    function set(list) {
+      container.innerHTML = list.map(tierRowHtml).join('');
+      var rows = container.querySelectorAll('.tier-row');
+      rows.forEach(function (row, idx) {
+        row.querySelector('.x').disabled = rows.length === 1;
+        row.querySelector('.x').addEventListener('click', function () { remove(idx); });
+        ['.t-dari', '.t-sampai'].forEach(function (sel) {
+          var el = row.querySelector(sel);
+          el.addEventListener('input', function () { var v = el.value.replace(/\D/g, ''); if (v !== el.value) el.value = v; });
+        });
+        var r = row.querySelector('.t-rate');
+        r.addEventListener('input', function () { var v = r.value.replace(/[^\d,.]/g, ''); if (v !== r.value) r.value = v; });
+      });
+    }
+    function remove(idx) {
+      var list = read();
+      if (list.length <= 1) return;
+      var removed = list.splice(idx, 1)[0];
+      // Tutup celah: jenjang sebelumnya diperpanjang, atau jenjang berikutnya dimulai dari bulan jenjang yang dihapus.
+      if (idx > 0) list[idx - 1].sampai = removed.sampai;
+      else list[0].dari = removed.dari;
+      set(list);
+    }
+    addBtn.addEventListener('click', function () {
+      var list = read(), n = parseIntStrict(tenorInput.value);
+      var last = list[list.length - 1], lastEnd = parseIntStrict(last && last.sampai);
+      var dari = isFinite(lastEnd) ? lastEnd + 1 : '';
+      var sampai = isFinite(n) && isFinite(dari) && n >= dari ? n : '';
+      list.push({ dari: dari, sampai: sampai, rate: last ? last.rate : '' });
+      set(list);
+      var rows = container.querySelectorAll('.tier-row');
+      rows[rows.length - 1].querySelector(sampai === '' ? '.t-dari' : '.t-sampai').focus();
     });
+    // Jika jenjang terakhir tadinya menutup tenor, ikutkan ke tenor baru.
+    var prevTenor = null;
+    tenorInput.addEventListener('focus', function () { prevTenor = parseIntStrict(tenorInput.value); });
+    tenorInput.addEventListener('input', function () {
+      var n = parseIntStrict(tenorInput.value), rows = container.querySelectorAll('.tier-row');
+      if (!rows.length || !(n >= 1)) return;
+      var lastS = rows[rows.length - 1].querySelector('.t-sampai');
+      if (parseIntStrict(lastS.value) === prevTenor) lastS.value = n;
+      prevTenor = n;
+    });
+    return { read: read, set: set };
   }
-  function f3Remove(idx) {
-    var list = f3ReadTiersRaw();
-    if (list.length <= 1) return;
-    var removed = list.splice(idx, 1)[0];
-    // Tutup celah: jenjang sebelumnya diperpanjang, atau jenjang berikutnya dimulai dari bulan jenjang yang dihapus.
-    if (idx > 0) list[idx - 1].sampai = removed.sampai;
-    else list[0].dari = removed.dari;
-    f3SetTiers(list);
-  }
-  $('f3Add').addEventListener('click', function () {
-    var list = f3ReadTiersRaw(), n = parseIntStrict($('f3Tenor').value);
-    var last = list[list.length - 1], lastEnd = parseIntStrict(last && last.sampai);
-    var dari = isFinite(lastEnd) ? lastEnd + 1 : '';
-    var sampai = isFinite(n) && isFinite(dari) && n >= dari ? n : '';
-    list.push({ dari: dari, sampai: sampai, rate: last ? last.rate : '' });
-    f3SetTiers(list);
-    var rows = document.querySelectorAll('#f3Tiers .tier-row');
-    rows[rows.length - 1].querySelector(sampai === '' ? '.t-dari' : '.t-sampai').focus();
-  });
+  var f3Tiers = TierEditor($('f3Tiers'), $('f3Add'), $('f3Tenor'));
   function f3TenorHint() {
     var n = parseIntStrict($('f3Tenor').value);
     $('f3TenorHint').textContent = n >= 12 ? (n % 12 ? fmtNum(n / 12, 1) : n / 12) + ' tahun' : '';
   }
-  var f3PrevTenor = null;
-  $('f3Tenor').addEventListener('focus', function () { f3PrevTenor = parseIntStrict($('f3Tenor').value); });
-  $('f3Tenor').addEventListener('input', function () {
-    f3TenorHint();
-    // Jika jenjang terakhir tadinya menutup tenor, ikutkan ke tenor baru.
-    var n = parseIntStrict($('f3Tenor').value), rows = document.querySelectorAll('#f3Tiers .tier-row');
-    if (!rows.length || !(n >= 1)) return;
-    var lastS = rows[rows.length - 1].querySelector('.t-sampai');
-    if (parseIntStrict(lastS.value) === f3PrevTenor) lastS.value = n;
-    f3PrevTenor = n;
-  });
+  $('f3Tenor').addEventListener('input', f3TenorHint);
 
   function f3Fill(d) {
     setRupiah($('f3Pokok'), d.pokok); $('f3Tenor').value = d.tenor; $('f3Cmp').value = d.cmp;
-    f3SetTiers(d.tiers); f3TenorHint();
+    f3Tiers.set(d.tiers); f3TenorHint();
   }
   var f3Last = null;
   function f3Compute() {
     var P = parseRupiah($('f3Pokok').value), n = parseIntStrict($('f3Tenor').value), errs = [];
     if (!(P > 0)) errs.push('Pokok pembiayaan harus lebih dari 0.');
     if (!(n >= 1)) errs.push('Tenor total harus bilangan bulat minimal 1 bulan.');
-    var tiers = f3ReadTiersRaw().map(function (t) {
+    var tiers = f3Tiers.read().map(function (t) {
       return { dari: parseIntStrict(t.dari), sampai: parseIntStrict(t.sampai), ratePa: parsePercent(t.rate) };
     });
     var cmpRaw = $('f3Cmp').value.trim(), cmpRate = cmpRaw ? parsePercent(cmpRaw) : null;
@@ -898,7 +1086,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     h += '<div class="panel schedule"><h2>Jadwal Angsuran Step-Up</h2><p class="desc">Bulan 1–' + res.tenor + ' · Baris pergantian jenjang disorot.</p>' +
       '<label class="toggle"><input type="checkbox" id="f3Toggle"' + (f3ShowSisaPokok ? ' checked' : '') + '> Tampilkan sisa pokok pembiayaan</label>' +
       '<div id="f3Sched">' + scheduleTable(res, { jenjang: true, kewajiban: true, sisaPokok: f3ShowSisaPokok }) + '</div>' +
-      '<p class="footnote"><b>Sisa Kewajiban</b> = jumlah seluruh angsuran yang belum dibayar (pokok + margin). Pada akad murabahah, ini adalah sisa harga jual yang terikat di akad; potongan margin saat pelunasan dipercepat mengikuti kebijakan lembaga pembiayaan.</p></div>';
+      '<p class="footnote"><b>Sisa Kewajiban</b> = jumlah seluruh angsuran yang belum dibayar (pokok + margin). Pada akad murabahah, ini adalah sisa harga jual yang terikat di akad; bila dilunasi sebelum jatuh tempo, lembaga wajib memberi potongan yang besarnya ditetapkan lembaga pembiayaan.</p></div>';
     $('f3Out').innerHTML = h;
     $('f3Toggle').addEventListener('change', function () {
       f3ShowSisaPokok = this.checked;
@@ -908,10 +1096,389 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
   $('f3Form').addEventListener('submit', function (e) { e.preventDefault(); f3Compute(); });
   $('f3Reset').addEventListener('click', function () { f3Fill(F3_DEFAULT); f3Compute(); });
 
+
+  /* ================= FITUR 4 ================= */
+  var F4_DEFAULT = {
+    harga: 500000000, dp: 100000000, tenor: 240,
+    tiers: [{ dari: 1, sampai: 240, rate: '10,5' }], aPot: '', aProv: '1', aAdmin: 1000000,
+    bFix: '6,5', bFixM: 36, bFloat: '12', bMetode: 'anuitas', bPen: '5', bProv: '1', bAdmin: 1000000
+  };
+  var f4 = { metode: 'anuitas', sched: 'a', showSisaPokok: false, k: 60 };
+  var f4Tiers = TierEditor($('f4ATiers'), $('f4AAdd'), $('f4Tenor'));
+  var f4Last = null;
+
+  function pctField(x) { return (Math.round(x * 1e6) / 1e4).toFixed(4).replace(/\.?0+$/, '').replace('.', ','); }
+  function f4Controls() {
+    document.querySelectorAll('#f4BMetode .opt').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-metode') === f4.metode); });
+    var n = parseIntStrict($('f4Tenor').value);
+    $('f4TenorHint').textContent = n >= 12 ? (n % 12 ? fmtNum(n / 12, 1) : n / 12) + ' tahun' : '';
+  }
+  document.querySelectorAll('#f4BMetode .opt').forEach(function (b) {
+    b.addEventListener('click', function () { f4.metode = b.getAttribute('data-metode'); f4Controls(); });
+  });
+  $('f4Tenor').addEventListener('input', f4Controls);
+
+  function f4Fill(d) {
+    setRupiah($('f4Harga'), d.harga); setRupiah($('f4Dp'), d.dp); $('f4Tenor').value = d.tenor;
+    f4Tiers.set(d.tiers); $('f4APot').value = d.aPot;
+    $('f4AProv').value = d.aProv; setRupiah($('f4AAdmin'), d.aAdmin);
+    $('f4BFix').value = d.bFix; $('f4BFixM').value = d.bFixM; $('f4BFloat').value = d.bFloat;
+    f4.metode = d.bMetode; $('f4BPen').value = d.bPen; $('f4BProv').value = d.bProv; setRupiah($('f4BAdmin'), d.bAdmin);
+    f4Controls();
+  }
+  $('f4From2').addEventListener('click', function () {
+    if (!f2Last) { showAlert('f4Alert', ['Hitung Fitur 2 terlebih dahulu.']); return; }
+    var r = f2Last.res;
+    setRupiah($('f4Harga'), r.pokok); setRupiah($('f4Dp'), 0); $('f4Tenor').value = r.tenor;
+    f4Tiers.set([{ dari: 1, sampai: r.tenor, rate: pctField(r.marginEfektifPa) }]);
+    f4Controls(); f4Compute();
+  });
+  $('f4From3').addEventListener('click', function () {
+    if (!f3Last) { showAlert('f4Alert', ['Hitung Fitur 3 terlebih dahulu.']); return; }
+    var r = f3Last.res;
+    setRupiah($('f4Harga'), r.pokok); setRupiah($('f4Dp'), 0); $('f4Tenor').value = r.tenor;
+    f4Tiers.set(r.tiers.map(function (t) { return { dari: t.dari, sampai: t.sampai, rate: pctField(t.marginPa) }; }));
+    f4Controls(); f4Compute();
+  });
+
+  function readPct(id, label, errs, required) {
+    var raw = $(id).value.trim();
+    if (!raw) { if (required) errs.push(label + ' belum diisi.'); return required ? NaN : 0; }
+    var v = parsePercent(raw);
+    if (!(v >= 0)) errs.push(label + ' tidak valid.');
+    return v;
+  }
+  function readFixFloat(pfx, labels, n, errs) {
+    var fix = readPct(pfx + 'Fix', labels.fix, errs, true);
+    var fixM = parseIntStrict($(pfx + 'FixM').value);
+    if (!(fixM >= 0)) { errs.push(labels.fixM + ' harus bilangan bulat (0 atau lebih).'); fixM = 0; }
+    var needFloat = fixM < n;
+    var flt = readPct(pfx + 'Float', labels.flt, errs, needFloat);
+    return { fix: fix, fixM: fixM, flt: needFloat ? flt : null };
+  }
+
+  function f4Compute() {
+    var errs = [];
+    var harga = parseRupiah($('f4Harga').value), dpRaw = $('f4Dp').value.trim(), dp = dpRaw ? parseRupiah(dpRaw) : 0;
+    var n = parseIntStrict($('f4Tenor').value);
+    if (!(harga > 0)) errs.push('Harga aset harus lebih dari 0.');
+    if (!(dp >= 0) || dp >= harga) errs.push('Uang muka harus 0 atau lebih dan lebih kecil dari harga aset.');
+    if (!(n >= 2)) errs.push('Tenor harus bilangan bulat minimal 2 bulan.');
+    var P = harga - dp, segA, segB, a = {}, b = {};
+    if (!errs.length) {
+      segA = f4Tiers.read().map(function (t) { return { dari: parseIntStrict(t.dari), sampai: parseIntStrict(t.sampai), ratePa: parsePercent(t.rate), pasti: true }; });
+      E.validateTiers(n, segA).forEach(function (m) { errs.push('A: ' + m); });
+      a.pot = $('f4APot').value.trim() ? readPct('f4APot', 'A: Asumsi potongan', errs, false) : null;   // null = tampilkan rentang
+      if (a.pot > 1) errs.push('A: Asumsi potongan maksimal 100% sisa margin.');
+      b = readFixFloat('f4B', { fix: 'B: Bunga masa tetap', fixM: 'B: Lama masa tetap', flt: 'B: Asumsi bunga floating' }, n, errs);
+      b.pen = readPct('f4BPen', 'B: Penalti pelunasan', errs, false);
+      a.prov = readPct('f4AProv', 'A: Provisi', errs, false); b.prov = readPct('f4BProv', 'B: Provisi', errs, false);
+      a.admin = parseRupiah($('f4AAdmin').value) || 0; b.admin = parseRupiah($('f4BAdmin').value) || 0;
+    }
+    if (errs.length) { showAlert('f4Alert', errs); $('f4Out').innerHTML = '<div class="empty">Perbaiki isian untuk melihat perbandingan.</div>'; f4Last = null; return; }
+    try {
+      segB = E.segmentsFixedThenFloat(n, b.fix, b.fixM, b.flt);
+      var resA = E.scheduleSegments(P, n, segA, { metode: 'anuitas' });
+      var resB = E.scheduleSegments(P, n, segB, { metode: f4.metode });
+      var feeA = E.upfrontFees(P, { provisiPct: a.prov, adminRp: a.admin }), feeB = E.upfrontFees(P, { provisiPct: b.prov, adminRp: b.admin });
+      var out = {
+        P: P, n: n, metode: f4.metode, a: a, b: b, resA: resA, resB: resB, feeA: feeA, feeB: feeB,
+        effA: E.effectiveCostWithFees(resA, feeA), effB: E.effectiveCostWithFees(resB, feeB)
+      };
+      out.costA = resA.totalBayar + feeA; out.costB = resB.totalBayar + feeB;
+      // Titik impas & rentang: hanya bila ada asumsi floating.
+      var costBAt = function (r) { return E.scheduleSegments(P, n, E.segmentsFixedThenFloat(n, b.fix, b.fixM, r), { metode: f4.metode }).totalBayar + feeB; };
+      if (b.flt !== null) {
+        out.breakEven = E.breakEvenRate(costBAt, out.costA);
+        out.rangeB = [costBAt(Math.max(0, b.flt - 0.02)), costBAt(b.flt + 0.02)];
+      }
+    } catch (err) { showAlert('f4Alert', errMsgs(err)); $('f4Out').innerHTML = ''; f4Last = null; return; }
+    showAlert('f4Alert', null);
+    f4.k = Math.min(Math.max(1, f4.k), n - 1);
+    f4Last = out;
+    f4Render();
+  }
+
+  function hasEst(res) { return res.tiers.some(function (t) { return !t.pasti; }); }
+  function approx(res, s) { return (hasEst(res) ? '≈ ' : '') + s; }
+  function describeRates(res, kata) {
+    var t = res.tiers;
+    if (t.length === 1) return fmtPct(t[0].marginPa, 2) + ' p.a.' + (t[0].pasti ? ' tetap seluruh tenor' : ' (asumsi)');
+    if (t.every(function (x) { return x.pasti; })) return 'Berjenjang ' + t.map(function (x) { return fmtPct(x.marginPa, 2); }).join(' → ');
+    return fmtPct(t[0].marginPa, 2) + ' tetap ' + (t[0].sampai) + ' bln, lalu ≈ ' + fmtPct(t[1].marginPa, 2) + ' (asumsi ' + kata + ')';
+  }
+  /* Baris tabel pembanding. cmp = { a, b, fmt, est, tol }: nilai lebih rendah disorot dan disebut di kolom "Lebih rendah". */
+  function cmpRowFn(hA, hB) {
+    return function (label, va, vb, cmp, cls) {
+      var win = '', note = '';
+      if (cmp && cmp.aRange) {
+        var lo = cmp.aRange[0], hi = cmp.aRange[1];
+        if (cmp.b < lo - 0.5) { win = 'b'; note = (cmp.est ? '≈ ' : '') + '<span class="key b"></span>B · min. ' + fmtRp(lo - cmp.b); }
+        else if (cmp.b > hi + 0.5) { win = 'a'; note = (cmp.est ? '≈ ' : '') + '<span class="key a"></span>A · min. ' + fmtRp(cmp.b - hi); }
+        else note = 'Tergantung potongan';
+      } else if (cmp) {
+        var d = cmp.b - cmp.a;
+        if (Math.abs(d) < (cmp.tol || 0.5)) note = 'Sama';
+        else {
+          win = d > 0 ? 'a' : 'b';
+          note = (cmp.est ? '≈ ' : '') + '<span class="key ' + win + '"></span>' + win.toUpperCase() + ' · ' + cmp.fmt(Math.abs(d));
+        }
+      }
+      return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td>' + label + '</td>' +
+        '<td class="num' + (win === 'a' ? ' win a' : '') + '" data-h="' + hA + '">' + va + '</td>' +
+        '<td class="num' + (win === 'b' ? ' win b' : '') + '" data-h="' + hB + '">' + vb + '</td>' +
+        '<td class="num d"' + (note ? ' data-h="Lebih rendah"' : '') + '>' + note + '</td></tr>';
+    };
+  }
+  var rpCmp = function (a, b, est) { return { a: Math.round(a), b: Math.round(b), fmt: fmtRp, est: est }; };
+  function fmtJt(x) { return x >= 1e6 ? 'Rp ' + fmtNum(x / 1e6, 1) + ' jt' : fmtRp(x); }
+  /* Berapa bulan pertama berturut-turut produk `win` lebih ringan. */
+  function lighterMonths(win, lose) {
+    var k = 0;
+    while (k < win.rows.length && win.rows[k].angsuran < lose.rows[k].angsuran - 0.5) k++;
+    return k;
+  }
+
+  function maxRow(res) { return res.rows.reduce(function (m, r) { return r.angsuran > m.angsuran + 1e-6 ? r : m; }, res.rows[0]); }
+
+  function f4Render() {
+    var o = f4Last, A = o.resA, B = o.resB, nameA = 'Murabahah', estB = hasEst(B);
+    var mxA = maxRow(A), mxB = maxRow(B), hA = 'A · ' + nameA, hB = 'B · Konvensional';
+    var row = cmpRowFn(hA, hB);
+    var trow = function (label, va, vb) { return '<tr><td>' + label + '</td><td class="txt" data-h="' + hA + '">' + va + '</td><td class="txt" data-h="' + hB + '">' + vb + '</td><td class="d"></td></tr>'; };
+    var estAny = hasEst(A) || estB, fltNote = estB ? ', bila bunga floating ' + fmtPct(o.b.flt, 2) : '';
+
+    // Kartu per dimensi: tidak ada satu "pemenang", tiap dimensi dijawab sendiri.
+    var verdict = function (q, win, w, sTxt, id) {
+      return '<div class="verdict ' + (win || '') + '" id="' + id + '"><div class="q">' + q + '</div><div class="w">' +
+        (win ? '<span class="key ' + win + '"></span>' : '') + w + '</div><div class="s">' + sTxt + '</div></div>';
+    };
+    var dCost = Math.round(o.costB) - Math.round(o.costA), wCost = dCost === 0 ? '' : dCost > 0 ? 'a' : 'b';
+    var dA1 = Math.round(B.rows[0].angsuran) - Math.round(A.rows[0].angsuran), wA1 = dA1 === 0 ? '' : dA1 > 0 ? 'a' : 'b';
+    var nLight = wA1 ? lighterMonths(wA1 === 'a' ? A : B, wA1 === 'a' ? B : A) : 0;
+    var certA = !hasEst(A), certB = !estB, wCert = certA === certB ? '' : certA ? 'a' : 'b';
+    var label = function (w) { return w === 'a' ? hA : hB; };
+    var h = '<div class="verdicts">' +
+      verdict('Total biaya lebih rendah', wCost, wCost ? label(wCost) : 'Sama',
+        wCost ? (estAny ? '≈ ' : '') + fmtJt(Math.abs(dCost)) + ' lebih rendah selama ' + o.n + ' bulan' + fltNote : 'Total biaya keduanya sama', 'f4VCost') +
+      verdict('Angsuran awal lebih ringan', wA1, wA1 ? label(wA1) : 'Sama',
+        wA1 ? fmtRp(Math.abs(dA1)) + '/bulan lebih ringan' + (nLight >= o.n ? ' sepanjang tenor' : ' di bulan 1–' + nLight) : 'Angsuran bulan 1 keduanya sama', 'f4VA1') +
+      verdict('Angsuran lebih pasti', wCert, wCert ? label(wCert) : 'Sama',
+        wCert ? (wCert === 'a' ? 'Harga jual terkunci di akad; B dapat berubah setelah bulan ' + (B.tiers[0].pasti ? B.tiers[0].sampai : 0)
+                               : 'Bunga tetap seluruh tenor')
+              : (certA ? 'Keduanya tetap seluruh tenor' : 'Keduanya memakai asumsi'), 'f4VCert') +
+      '</div>';
+
+    h += '<div class="panel" style="margin-bottom:1.25rem"><h2>Ringkasan Perbandingan</h2>' +
+      '<p class="desc">Pokok ' + fmtRp(o.P) + ' · tenor ' + o.n + ' bulan. Nilai yang lebih rendah disorot. Angka bertanda ≈ bergantung pada asumsi Anda.</p>' +
+      '<div class="scroll"><table class="sticky cmp" id="f4Cmp"><thead><tr><th>Komponen</th>' +
+      '<th class="num a"><span class="key a"></span>' + hA + '</th><th class="num b"><span class="key b"></span>' + hB + '</th><th class="num">Lebih rendah</th></tr></thead><tbody>' +
+      trow('Jenis transaksi', 'Jual beli; keuntungan berupa margin', 'Pinjam-meminjam uang; keuntungan berupa bunga') +
+      trow('Margin / bunga', describeRates(A, 'margin'), describeRates(B, 'floating') + (o.metode === 'pokokTetap' ? '; efektif menurun' : '')) +
+      row('Angsuran bulan 1', fmtRp(A.rows[0].angsuran), fmtRp(B.rows[0].angsuran), rpCmp(A.rows[0].angsuran, B.rows[0].angsuran, false)) +
+      row('Angsuran tertinggi', (mxA.pasti ? '' : '≈ ') + fmtRp(mxA.angsuran) + '<span class="sub2">bulan ' + mxA.bulan + '</span>',
+                                (mxB.pasti ? '' : '≈ ') + fmtRp(mxB.angsuran) + '<span class="sub2">bulan ' + mxB.bulan + '</span>',
+                                rpCmp(mxA.angsuran, mxB.angsuran, !mxA.pasti || !mxB.pasti)) +
+      row('Total angsuran', approx(A, fmtRp(A.totalBayar)), approx(B, fmtRp(B.totalBayar)), rpCmp(A.totalBayar, B.totalBayar, estAny)) +
+      row('Total margin / bunga', approx(A, fmtRp(A.totalMargin)), approx(B, fmtRp(B.totalMargin)), rpCmp(A.totalMargin, B.totalMargin, estAny)) +
+      row('Biaya di muka', fmtRp(o.feeA), fmtRp(o.feeB), rpCmp(o.feeA, o.feeB, false)) +
+      row('Total biaya<br><span class="muted">angsuran + biaya di muka</span>', approx(A, fmtRp(o.costA)), approx(B, fmtRp(o.costB)), rpCmp(o.costA, o.costB, estAny), 'key-row') +
+      (o.rangeB ? row('Total biaya bila asumsi ±2 poin', '<span class="muted">tidak berubah</span>',
+          '≈ ' + fmtRp(o.rangeB[0]) + ' –<br>' + fmtRp(o.rangeB[1]), null) : '') +
+      row('Biaya efektif p.a.<br><span class="muted">termasuk biaya di muka</span>', approx(A, fmtPct(o.effA, 2)), approx(B, fmtPct(o.effB, 2)),
+          { a: o.effA, b: o.effB, tol: 0.00005, est: estAny, fmt: function (v) { return fmtNum(v * 100, 2) + ' poin'; } }) +
+      trow('Kepastian', A.tiers.length > 1 ? 'Seluruh jenjang tertulis di akad; harga jual terkunci' : 'Harga jual terkunci di akad seluruh tenor',
+                        estB ? 'Tetap s.d. bulan ' + (B.tiers[0].pasti ? B.tiers[0].sampai : 0) + '; setelahnya floating, dapat berubah sewaktu-waktu' : 'Tetap seluruh tenor') +
+      trow('Denda keterlambatan', 'Ta’zir: nominal sesuai akad, hanya untuk nasabah mampu yang sengaja menunda; disalurkan ke dana sosial',
+                                  'Umumnya % per hari dari tunggakan; menjadi pendapatan bank') +
+      '</tbody></table></div>' +
+      (wCost && o.effA !== o.effB && (o.effB - o.effA > 0 ? 'a' : 'b') !== wCost
+        ? '<p class="footnote" id="f4EffNote">Total biaya dan biaya efektif bisa menunjuk produk berbeda: biaya efektif ikut menghitung waktu pembayaran, sehingga produk yang angsuran awalnya lebih ringan bisa tampak lebih murah walau total rupiahnya lebih besar.</p>' : '') +
+      '</div>';
+
+    // Titik impas (netral)
+    if (o.breakEven) {
+      var be = o.breakEven, txt;
+      if (be.status === 'ok')
+        txt = '<b>Titik impas:</b> total biaya B sama dengan A bila bunga floating B rata-rata <b id="f4BreakEven">' + fmtPct(be.rate, 2) + '</b> p.a. ' +
+          'Di bawah angka itu B lebih murah; di atasnya A lebih murah. Asumsi Anda saat ini ' + fmtPct(o.b.flt, 2) + '.';
+      else if (be.status === 'diAtasPadaNol')
+        txt = '<b>Titik impas:</b> walau bunga floating B 0%, total biaya B tetap lebih tinggi dari A.';
+      else txt = '<b>Titik impas:</b> total biaya B tetap lebih rendah dari A pada kisaran bunga floating yang wajar.';
+      h += '<div class="note green" id="f4Note">' + txt + '</div>';
+    } else {
+      h += '<div class="note green" id="f4Note">B memakai bunga tetap seluruh tenor, jadi tidak ada asumsi floating untuk dibandingkan.</div>';
+    }
+
+    // Grafik
+    h += '<div class="panel" style="margin-bottom:1.25rem"><h2>Angsuran per Bulan</h2><p class="desc">Lonjakan jenjang dan perubahan bunga setelah masa tetap terlihat di sini. Arahkan kursor atau sentuh grafik untuk melihat angka.</p>' +
+      '<div class="legend"><span><span class="key a"></span>A · ' + nameA + '</span><span><span class="key b"></span>B · Konvensional</span><span><span class="key dash"></span>Garis putus-putus = asumsi</span></div>' +
+      '<div class="chart-wrap" id="f4Chart"></div></div>';
+
+    // Pelunasan dipercepat
+    h += '<div class="panel" style="margin-bottom:1.25rem"><h2>Pelunasan Dipercepat</h2><p class="desc">Berapa yang harus dibayar bila dilunasi setelah angsuran bulan tertentu.</p>' +
+      '<div class="range-row"><input type="range" id="f4K" min="1" max="' + (o.n - 1) + '" value="' + f4.k + '" aria-label="Bulan pelunasan"><span class="k" id="f4KLabel"></span></div>' +
+      '<div id="f4Settle"></div></div>';
+
+    // Jadwal
+    h += '<div class="panel schedule"><h2>Jadwal Angsuran</h2><p class="desc">Baris abu-abu miring memakai asumsi margin/bunga setelah masa tetap.</p>' +
+      '<div class="seg" id="f4SchedSel"><button type="button" class="opt" data-s="a"><b>A · ' + nameA + '</b></button><button type="button" class="opt" data-s="b"><b>B · Konvensional</b></button></div><br>' +
+      '<label class="toggle" id="f4ToggleWrap"><input type="checkbox" id="f4Toggle"> Tampilkan sisa pokok</label>' +
+      '<div id="f4Sched"></div></div>' +
+      '<p class="disclaimer">Hasil simulasi, bukan penawaran. Bunga floating adalah asumsi Anda; ketentuan sebenarnya mengikuti akad atau perjanjian masing-masing lembaga.</p>';
+
+    $('f4Out').innerHTML = h;
+    $('f4K').addEventListener('input', function () { f4.k = +this.value; f4RenderSettle(); });
+    document.querySelectorAll('#f4SchedSel .opt').forEach(function (btn) {
+      btn.addEventListener('click', function () { f4.sched = btn.getAttribute('data-s'); f4RenderSched(); });
+    });
+    $('f4Toggle').addEventListener('change', function () { f4.showSisaPokok = this.checked; f4RenderSched(); });
+    f4RenderSettle(); f4RenderSched(); f4DrawChart();
+  }
+
+  function f4RenderSettle() {
+    var o = f4Last, k = f4.k;
+    // Murabahah: batas atas = tanpa potongan, batas bawah = potongan 100% sisa margin (= sisa pokok).
+    var aHi = E.earlySettlement(o.resA, k, { basis: 'sisaKewajiban', potonganPct: 0 });
+    var aLo = E.earlySettlement(o.resA, k, { basis: 'sisaKewajiban', potonganPct: 1 });
+    var hasPot = o.a.pot !== null;
+    var sA = hasPot ? E.earlySettlement(o.resA, k, { basis: 'sisaKewajiban', potonganPct: o.a.pot }) : null;
+    var sB = E.earlySettlement(o.resB, k, { basis: 'sisaPokok', penaltyPct: o.b.pen });
+    var paidA = o.feeA + aHi.dibayar, totB = o.feeB + sB.dibayar + sB.pelunasan;
+    var yr = k >= 12 ? ' <span class="muted">(tahun ke-' + Math.ceil(k / 12) + ')</span>' : '';
+    $('f4KLabel').innerHTML = 'Bulan ' + k + yr;
+    var row = cmpRowFn('A · Murabahah', 'B · Konvensional');
+    var estB = o.resB.rows.slice(0, k).some(function (r) { return r.pasti === false; });
+    var rangeTxt = function (lo, hi) { return fmtRp(lo) + ' –<br>' + fmtRp(hi); };
+    var h = '<div class="scroll"><table class="sticky cmp" id="f4SettleTable"><thead><tr><th>Komponen</th><th class="num a"><span class="key a"></span>A · Murabahah</th><th class="num b"><span class="key b"></span>B · Konvensional</th><th class="num">Lebih rendah</th></tr></thead><tbody>' +
+      '<tr><td>Dasar pelunasan</td><td class="txt" data-h="A · Murabahah">Sisa kewajiban dikurangi potongan yang wajib diberikan lembaga</td><td class="txt" data-h="B · Konvensional">Sisa pokok + penalti</td><td class="d"></td></tr>' +
+      row('Batas atas<br><span class="muted">tanpa potongan (sisa kewajiban)</span>', fmtRp(aHi.pelunasan), '—', null) +
+      row('Batas bawah<br><span class="muted">potongan 100% sisa margin (sisa pokok)</span>', fmtRp(aLo.pelunasan), fmtRp(sB.dasar) + '<span class="sub2">sisa pokok</span>', null) +
+      row('Penalti', '—', fmtRp(sB.penalti) + ' <span class="muted">(' + fmtPct(o.b.pen, 2) + ')</span>', null) +
+      (hasPot ? row('Potongan <span class="muted">(asumsi Anda)</span>', '−' + fmtRp(sA.potongan) + ' <span class="muted">(' + fmtPct(o.a.pot, 2) + ' sisa margin)</span>', '—', null) : '') +
+      (hasPot
+        ? row('Jumlah pelunasan', fmtRp(sA.pelunasan), fmtRp(sB.pelunasan), rpCmp(sA.pelunasan, sB.pelunasan, estB), 'key-row')
+        : row('Jumlah pelunasan<br><span class="muted">rentang, tergantung potongan</span>', rangeTxt(aLo.pelunasan, aHi.pelunasan), fmtRp(sB.pelunasan),
+            { aRange: [Math.round(aLo.pelunasan), Math.round(aHi.pelunasan)], b: Math.round(sB.pelunasan), est: estB }, 'key-row')) +
+      row('Angsuran sudah dibayar <span class="muted">bln 1–' + k + '</span>', fmtRp(aHi.dibayar), (estB ? '≈ ' : '') + fmtRp(sB.dibayar), null) +
+      (hasPot
+        ? row('Total keluar<br><span class="muted">biaya di muka + angsuran + pelunasan</span>', fmtRp(paidA + sA.pelunasan), (estB ? '≈ ' : '') + fmtRp(totB), rpCmp(paidA + sA.pelunasan, totB, estB), 'key-row')
+        : row('Total keluar<br><span class="muted">biaya di muka + angsuran + pelunasan</span>', rangeTxt(paidA + aLo.pelunasan, paidA + aHi.pelunasan), (estB ? '≈ ' : '') + fmtRp(totB),
+            { aRange: [Math.round(paidA + aLo.pelunasan), Math.round(paidA + aHi.pelunasan)], b: Math.round(totB), est: estB }, 'key-row')) +
+      '</tbody></table></div>';
+    h += '<p class="footnote">Murabahah: utang nasabah adalah sisa harga jual. Bila dilunasi sebelum jatuh tempo, lembaga wajib memberi potongan, tetapi besarnya ditetapkan lembaga dan tidak diperjanjikan di akad. ' +
+      'Karena itu A ditampilkan sebagai rentang: batas atas tanpa potongan, batas bawah setara sisa pokok, yaitu basis yang sama dengan B dan dengan praktik umum pelunasan pada akad MMQ.' +
+      (hasPot ? '' : ' Isi asumsi potongan di panel kiri untuk mendapatkan satu angka.') + '</p>';
+    $('f4Settle').innerHTML = h;
+  }
+
+  function f4RenderSched() {
+    var o = f4Last, isA = f4.sched === 'a', res = isA ? o.resA : o.resB;
+    document.querySelectorAll('#f4SchedSel .opt').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-s') === f4.sched); });
+    // Kolom sama untuk A dan B: Sisa Kewajiban, plus Sisa Pokok lewat sakelar.
+    var est = hasEst(res);
+    var opts = { jenjang: true, markEst: true, kewajiban: true, sisaPokok: f4.showSisaPokok,
+      periodeLabel: isA ? 'Jenjang' : 'Periode', marginLabel: isA ? 'Angsuran Margin' : 'Angsuran Bunga',
+      kewajibanLabel: est ? 'Sisa Kewajiban ≈' : 'Sisa Kewajiban', sisaPokokLabel: isA ? 'Sisa Pokok Pembiayaan' : 'Sisa Pokok' };
+    if (!isA) opts.periodeFmt = function (r) { return (r.pasti ? 'Tetap · ' : 'Floating ≈ ') + fmtPct(r.marginPa, 2); };
+    $('f4Sched').innerHTML = scheduleTable(res, opts) +
+      '<p class="footnote"><b>Sisa Kewajiban</b> = jumlah seluruh angsuran yang belum dibayar (pokok + ' + (isA ? 'margin' : 'bunga') + '). ' +
+      (isA ? 'Pada murabahah ini adalah sisa harga jual yang terikat di akad, dan menjadi dasar pelunasan dipercepat.'
+           : 'Pada kredit konvensional angka ini hanya pembanding: pelunasan dipercepat dihitung dari sisa pokok + penalti, bukan dari sisa kewajiban.' +
+             (est ? ' Karena bunga setelah masa tetap adalah asumsi, sisa kewajiban B adalah estimasi sejak bulan 1.' : '')) + '</p>';
+  }
+
+  /* Grafik garis bertingkat: angsuran per bulan, A vs B. SVG tanpa pustaka. */
+  function f4DrawChart() {
+    var wrap = $('f4Chart');
+    if (!f4Last || !wrap || !wrap.clientWidth) return;
+    var o = f4Last, n = o.n, W = wrap.clientWidth, H = W < 520 ? 230 : 290;
+    var m = { l: 58, r: 26, t: 10, b: 28 }, pw = W - m.l - m.r, ph = H - m.t - m.b;
+    var series = [{ key: 'a', name: 'A · Murabahah', color: '#059669', res: o.resA },
+                  { key: 'b', name: 'B · Konvensional', color: '#3b5bdb', res: o.resB }];
+    var maxV = 0;
+    series.forEach(function (sr) { sr.res.rows.forEach(function (r) { if (r.angsuran > maxV) maxV = r.angsuran; }); });
+    var raw = maxV / 4, mag = Math.pow(10, Math.floor(Math.log10(raw))), step = [1, 2, 2.5, 5, 10].map(function (f) { return f * mag; }).find(function (s2) { return s2 >= raw; });
+    var top = Math.ceil(maxV * 1.05 / step) * step;
+    var x = function (k) { return m.l + k / n * pw; }, y = function (v) { return m.t + (1 - v / top) * ph; };
+    var NS = 'http://www.w3.org/2000/svg', svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" tabindex="0" aria-label="Grafik angsuran per bulan A dan B. Gunakan panah kiri/kanan untuk melihat angka.">';
+    for (var v = 0; v <= top + 1e-6; v += step) {
+      svg += '<line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="#e2e8f0" stroke-width="1"/>' +
+        '<text x="' + (m.l - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="11" fill="#64748b">' + fmtNum(v / 1e6, v / 1e6 % 1 ? 1 : 0) + ' jt</text>';
+    }
+    var years = n / 12, ys = [1, 2, 5, 10].find(function (s2) { return years / s2 <= 6; }) || 10;
+    for (var yr = 0; yr * 12 <= n; yr += ys) {
+      svg += '<text x="' + x(yr * 12) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="#64748b">' + (yr === 0 ? 'Bln 0' : 'Th ' + yr) + '</text>';
+    }
+    svg += '<line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y(0) + '" y2="' + y(0) + '" stroke="#94a3b8" stroke-width="1"/>';
+    series.forEach(function (sr) {
+      var rows = sr.res.rows, i = 0;
+      while (i < rows.length) {   // satu path per rangkaian bulan dengan status pasti yang sama
+        var pasti = rows[i].pasti !== false, d = 'M' + x(i) + ' ' + y(rows[i].angsuran);
+        while (i < rows.length && (rows[i].pasti !== false) === pasti) {
+          d += 'V' + y(rows[i].angsuran) + 'H' + x(i + 1); i++;
+        }
+        svg += '<path d="' + d + '" fill="none" stroke="' + sr.color + '" stroke-width="2" stroke-linejoin="round"' + (pasti ? '' : ' stroke-dasharray="6 4"') + '/>';
+      }
+    });
+    // Label langsung di ujung kanan; geser bila bertumpuk
+    var ends = series.map(function (sr) { return { key: sr.key.toUpperCase(), yv: y(sr.res.rows[n - 1].angsuran) }; });
+    if (Math.abs(ends[0].yv - ends[1].yv) < 13) { var mid = (ends[0].yv + ends[1].yv) / 2, up = ends[0].yv <= ends[1].yv ? 0 : 1; ends[up].yv = mid - 7; ends[1 - up].yv = mid + 7; }
+    ends.forEach(function (e) { svg += '<text x="' + (W - m.r + 6) + '" y="' + (e.yv + 4) + '" font-size="11" font-weight="700" fill="#334155">' + e.key + '</text>'; });
+    svg += '<line id="f4Cross" x1="0" x2="0" y1="' + m.t + '" y2="' + (m.t + ph) + '" stroke="#334155" stroke-width="1" visibility="hidden"/>';
+    series.forEach(function (sr) { svg += '<circle class="dot" data-k="' + sr.key + '" r="4" fill="' + sr.color + '" stroke="#fff" stroke-width="2" visibility="hidden"/>'; });
+    svg += '<rect x="' + m.l + '" y="' + m.t + '" width="' + pw + '" height="' + ph + '" fill="transparent" id="f4Hit"/></svg>';
+    wrap.innerHTML = svg + '<div class="chart-tip" id="f4Tip" hidden></div>';
+
+    var el = wrap.querySelector('svg'), tip = $('f4Tip'), cross = $('f4Cross'), cur = null;
+    function show(k, px, py) {
+      cur = k;
+      var cx = x(k - 0.5);
+      cross.setAttribute('x1', cx); cross.setAttribute('x2', cx); cross.setAttribute('visibility', 'visible');
+      tip.textContent = '';
+      var t = document.createElement('div'); t.className = 't'; t.textContent = 'Bulan ' + k + (k >= 12 ? ' · tahun ke-' + Math.ceil(k / 12) : ''); tip.appendChild(t);
+      series.forEach(function (sr) {
+        var r = sr.res.rows[k - 1], dot = el.querySelector('.dot[data-k="' + sr.key + '"]');
+        dot.setAttribute('cx', cx); dot.setAttribute('cy', y(r.angsuran)); dot.setAttribute('visibility', 'visible');
+        var line = document.createElement('div'); line.className = 'r';
+        var key = document.createElement('i'); key.className = 'key ' + sr.key; line.appendChild(key);
+        var b = document.createElement('b'); b.textContent = (r.pasti === false ? '≈ ' : '') + fmtRp(r.angsuran); line.appendChild(b);
+        var nm = document.createElement('span'); nm.textContent = sr.name; line.appendChild(nm);
+        tip.appendChild(line);
+      });
+      tip.hidden = false;
+      var tw = tip.offsetWidth, left = cx + 12;
+      if (left + tw > W) left = cx - tw - 12;
+      tip.style.transform = 'translate(' + Math.max(0, left) + 'px,' + Math.max(0, (py == null ? m.t : py - 40)) + 'px)';
+    }
+    function hide() { cur = null; tip.hidden = true; cross.setAttribute('visibility', 'hidden'); el.querySelectorAll('.dot').forEach(function (d) { d.setAttribute('visibility', 'hidden'); }); }
+    function fromEvent(ev) {
+      var rect = el.getBoundingClientRect(), sx = W / rect.width;
+      var px = (ev.clientX - rect.left) * sx, py = (ev.clientY - rect.top) * sx;
+      return { k: Math.min(n, Math.max(1, Math.ceil((px - m.l) / pw * n))), py: py };
+    }
+    $('f4Hit').addEventListener('pointermove', function (ev) { var p = fromEvent(ev); show(p.k, null, p.py); });
+    $('f4Hit').addEventListener('pointerdown', function (ev) { var p = fromEvent(ev); show(p.k, null, p.py); });
+    el.addEventListener('pointerleave', hide);
+    el.addEventListener('blur', hide);
+    el.addEventListener('focus', function () { show(cur || 1); });
+    el.addEventListener('keydown', function (ev) {
+      var d = ev.key === 'ArrowRight' ? 1 : ev.key === 'ArrowLeft' ? -1 : ev.key === 'PageUp' ? 12 : ev.key === 'PageDown' ? -12 : 0;
+      if (!d) return;
+      ev.preventDefault(); show(Math.min(n, Math.max(1, (cur || 1) + d)));
+    });
+  }
+  var f4ResizeT = null;
+  window.addEventListener('resize', function () { clearTimeout(f4ResizeT); f4ResizeT = setTimeout(f4DrawChart, 120); });
+
+  $('f4Form').addEventListener('submit', function (e) { e.preventDefault(); f4Compute(); });
+  $('f4Reset').addEventListener('click', function () { f4Fill(F4_DEFAULT); f4Compute(); });
+
   /* ---------- Mulai ---------- */
   f1Fill(F1_DEFAULT); f1Compute();
   f2Fill(F2_DEFAULT); f2Compute();
   f3Fill(F3_DEFAULT); f3Compute();
+  f4Fill(F4_DEFAULT); f4Compute();
 
   window.FinUI = { parseRupiah: parseRupiah, parsePercent: parsePercent, showTab: showTab };
 })();
