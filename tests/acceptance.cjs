@@ -170,6 +170,42 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
   await f3Setup(page, '400.000.000', '264', [[1, 48, '8,34'], [49, 200, '13,14']]);
   check('error tidak menutup tenor', await txt(page, '#f3Alert'), contains('Jenjang tidak menutup tenor'));
 
+  if (await page.$('#f3Tiers .t-ang')) {
+    console.log('F3 jenjang: margin ⇄ angsuran per bulan');
+    const tierVals = () => page.$$eval('#f3Tiers .tier-row', (rs) => rs.map((r) => ({
+      rate: r.querySelector('.t-rate').value, ang: r.querySelector('.t-ang').value, src: r.getAttribute('data-src'),
+      autoRate: r.querySelector('.f-rate').classList.contains('auto'), autoAng: r.querySelector('.f-ang').classList.contains('auto') })));
+    // Margin → angsuran (bawaan Fitur 3: 400 jt, 240 bln, 10,5%)
+    await page.click('.tab[data-tab="3"]'); await page.click('#f3Reset');
+    let tv = await tierVals();
+    check('margin 10,5% → angsuran otomatis 3.993.520', tv[0].ang + (tv[0].autoAng ? ' (otomatis)' : ''), '3.993.520 (otomatis)');
+    // Angsuran → margin, dua jenjang (kasus §8 #9 dari nominal)
+    await f3Setup(page, '400.000.000', '264', [[1, 48, '8,34'], [49, 264, '13,14']]);
+    const rows = page.locator('#f3Tiers .tier-row');
+    await rows.nth(0).locator('.t-ang').fill('3.312.133');
+    await rows.nth(1).locator('.t-ang').fill('4.475.149');
+    tv = await tierVals();
+    check('angsuran → margin otomatis 8,34 / 13,14', tv.map((t) => t.rate + (t.autoRate ? '*' : '')).join(' | '), (v) => /^8,34\d*\* \| 13,14\d*\*$/.test(v));
+    await page.click('#f3Form button[type=submit]');
+    const sm = await page.$$eval('#f3Summary tbody tr', (t) => t.map((tr) => tr.cells[3].innerText.trim()));
+    check('angsuran jenjang persis seperti diisi', sm.join(' | '), 'Rp 3.312.133 | Rp 4.475.149');
+    check('total bayar dari nominal ≈ kasus #9', await txt(page, '#f3TotalBayar'), (v) => /^Rp 1\.125\.61\d\.\d{3}$/.test(v));
+    // Campuran: jenjang 1 dari margin, jenjang 2 dari angsuran; ubah jenjang 1 → margin jenjang 2 ikut berubah
+    await rows.nth(0).locator('.t-rate').fill('8,34');
+    let tv2 = await tierVals();
+    check('campuran: jenjang 1 sumber margin, jenjang 2 sumber angsuran', tv2.map((t) => t.src).join(','), 'rate,ang');
+    await rows.nth(0).locator('.t-rate').fill('9');
+    tv2 = await tierVals();
+    check('ubah margin jenjang 1 → margin jenjang 2 dihitung ulang', tv2[1].rate !== tv[1].rate && tv2[1].ang === '4.475.149', true);
+    // Angsuran terlalu kecil
+    await f3Setup(page, '400.000.000', '264', [[1, 264, '9']]);
+    await page.locator('#f3Tiers .tier-row').nth(0).locator('.t-ang').fill('1.000.000');
+    check('angsuran terlalu kecil → pesan di jenjang', await txt(page, '#f3Tiers .tr-err'), contains('minimal Rp 1.515.152'));
+    await page.click('#f3Form button[type=submit]');
+    check('angsuran terlalu kecil → error saat hitung', await txt(page, '#f3Alert'), contains('angsuran terlalu kecil'));
+    await page.click('#f3Reset');
+  }
+
   const hasF4 = await page.$('#v4') !== null;
   if (hasF4) {
     console.log('F4 Bandingkan Syariah & Konvensional');
