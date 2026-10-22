@@ -5,6 +5,14 @@ Catatan perubahan, terbaru di atas. Spesifikasi dan angka uji ada di `docs/`:
 
 ## [Belum dirilis]
 
+### Ditambahkan
+- **Jenjang margin ⇄ angsuran per bulan (Fitur 3 & 4).** Tiap jenjang bisa diisi margin p.a. *atau*
+  nominal angsuran per bulan; isian lainnya dihitung otomatis (ditandai "otomatis") dan diperbarui bila
+  pokok, tenor, atau jenjang sebelumnya berubah. Margin dicari berurutan per jenjang dari sisa pokok di
+  awal jenjang (`FinEngine.resolveTiers`). Peringatan bila angsuran tidak cukup melunasi sisa pokok.
+  Contoh: angsuran Rp 3.312.133 / Rp 4.475.149 (400 jt, 264 bln, jenjang 1–48 / 49–264) → 8,34% / 13,14%.
+- Tata letak jenjang menjadi kotak dua baris (bulan dari–s.d., lalu margin ⇄ angsuran).
+
 ### Diperbaiki
 - **Pelunasan dipercepat murabahah (Fitur 4) kini mengikuti teks resmi Fatwa DSN-MUI 153/2022.**
   Yang dibayar = harga saat pelunasan (harga jual tunai + tambahan harga sebanding waktu yang telah

@@ -27,6 +27,7 @@ scheduleSegments(P, n, segments, { metode: 'anuitas' | 'pokokTetap' })
   anuitas    : A_k = PMT(r_k, n − dari_k + 1, sisa pokok)   — sama dengan step-up
   pokokTetap : pokok = P/n, bunga = sisa · r/12 (efektif menurun)
 scheduleStepUp(P, n, tiers)          = scheduleSegments(..., anuitas)
+resolveTiers(P, n, [{ dari, sampai, ratePa | angsuran }])   // lengkapi margin ⇄ angsuran per jenjang, berurutan
 segmentsFixedThenFloat(n, fix, fixMonths, float)
 upfrontFees(P, { provisiPct, adminRp })
 effectiveCostWithFees(res, fees)     = irr([−(P − fees), angsuran...]) × 12

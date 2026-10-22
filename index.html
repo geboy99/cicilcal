@@ -111,11 +111,20 @@
   .footnote{font-size:.75rem;color:var(--slate-500);margin-top:.75rem}
 
   /* ---------- Jenjang (Fitur 3) ---------- */
-  .tier-head,.tier-row{display:grid;grid-template-columns:1fr 1fr 1fr 44px;gap:.5rem;align-items:center}
-  .tier-head>*,.tier-row>*{min-width:0}
-  .tier-head{font-size:.72rem;color:var(--slate-500);font-weight:600;margin-bottom:.3rem}
-  .tier-row{margin-bottom:.5rem}
+  .tier-row{border:1px solid var(--slate-200);border-radius:var(--r-sm);padding:.55rem .65rem .65rem;margin-bottom:.6rem;background:#fff}
   .tier-row .input{padding:.5rem .6rem;font-size:.9rem}
+  .tr-top{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto minmax(0,1fr) 44px;gap:.4rem;align-items:center}
+  .tr-no{font-size:.78rem;font-weight:700;color:var(--navy-800);margin-right:.2rem}
+  .tr-lbl{font-size:.75rem;color:var(--slate-500)}
+  .tr-bot{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1.35fr);gap:.4rem;align-items:end;margin-top:.45rem}
+  .tr-f{display:block;min-width:0}
+  .tr-f .tag{display:block;font-size:.72rem;font-weight:600;color:var(--slate-500);margin-bottom:.2rem;white-space:nowrap}
+  .tr-f.auto .tag::after{content:" · otomatis";font-weight:600;color:var(--em-700)}
+  .tr-f.auto .input-wrap{background:var(--slate-50)}
+  .tr-f.auto input{color:var(--slate-600);font-style:italic}
+  .tr-f .adorn{padding:0 .5rem}
+  .tr-eq{color:var(--slate-400);font-weight:700;padding-bottom:.7rem}
+  .tr-err{font-size:.75rem;color:var(--red-700);margin-top:.35rem}
   .x{color:var(--slate-400);font-weight:700;font-size:1.1rem;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:var(--r-sm)}
   .x:hover:not(:disabled){color:var(--red-700);border-color:var(--red-200);background:var(--red-50)}
   .x:disabled{opacity:.35;cursor:not-allowed}
@@ -345,10 +354,10 @@
             <div class="hint" id="f3TenorHint"></div></div>
           <div class="fg full">
             <span class="l">Jenjang Margin Efektif</span>
-            <div class="tier-head"><span>Dari bulan</span><span>Sampai bulan</span><span>Margin p.a. (%)</span><span></span></div>
+            
             <div id="f3Tiers"></div>
             <button type="button" class="addtier" id="f3Add">+ Tambah jenjang</button>
-            <div class="hint">Angsuran dihitung dengan metode anuitas di awal tiap jenjang dari sisa pokok. Jenjang harus berurutan dan menutup seluruh tenor.</div>
+            <div class="hint">Isi margin p.a. <b>atau</b> angsuran per bulan tiap jenjang; yang lain dihitung otomatis. Angsuran dihitung ulang dengan metode anuitas di awal tiap jenjang dari sisa pokok. Jenjang harus berurutan dan menutup seluruh tenor.</div>
           </div>
           <div class="fg full"><label class="l" for="f3Cmp">Pembanding (opsional)</label>
             <div class="input-wrap"><span class="adorn pre">Margin tetap</span><input class="input bare" id="f3Cmp" inputmode="decimal" autocomplete="off" data-pct placeholder="kosongkan jika tidak ada"><span class="adorn suf">% p.a.</span></div>
@@ -379,10 +388,10 @@
           <div class="fields">
             <div class="fg full">
               <span class="l">Jenjang Margin Efektif</span>
-              <div class="tier-head"><span>Dari bulan</span><span>Sampai bulan</span><span>Margin p.a. (%)</span><span></span></div>
+              
               <div id="f4ATiers"></div>
               <button type="button" class="addtier" id="f4AAdd">+ Tambah jenjang</button>
-              <div class="hint">Satu jenjang = margin tetap seluruh tenor. Lebih dari satu = step-up yang tertulis di akad.</div>
+              <div class="hint">Isi margin p.a. <b>atau</b> angsuran per bulan; yang lain dihitung otomatis. Satu jenjang = margin tetap seluruh tenor. Lebih dari satu = step-up yang tertulis di akad.</div>
               <div class="import">Isi dari: <button type="button" class="linkbtn" id="f4From2">Fitur 2</button><button type="button" class="linkbtn" id="f4From3">Fitur 3</button></div>
             </div>
             <div class="fg full"><label class="l" for="f4ATunai">Harga jual tunai di akad <span class="muted">(opsional)</span></label><div class="input-wrap"><span class="adorn pre">Rp</span><input class="input bare" id="f4ATunai" inputmode="numeric" autocomplete="off" data-rupiah placeholder="kosong = harga aset"></div><div class="hint">Dipakai untuk menghitung pelunasan dipercepat. Harga jual tunai wajib tercantum di akad murabahah; bila dikosongkan, dianggap sama dengan harga aset (asumsi).</div></div>
@@ -586,6 +595,32 @@ var FinEngine = (function () {
     return res;
   }
 
+  /* Lengkapi jenjang anuitas: tiap jenjang diisi margin p.a. (ratePa) ATAU angsuran per bulan (angsuran),
+     yang lain dihitung. Berurutan, karena angsuran jenjang k bergantung pada sisa pokok di awal jenjang k:
+     A_k = PMT(r_k, n − dari_k + 1, sisa) ⇔ r_k = solveRateFromPayment(sisa, n − dari_k + 1, A_k).
+     Berhenti di jenjang pertama yang belum lengkap/berurutan; error.code 'angsuranKecil' bila A_k tidak melunasi sisa. */
+  function resolveTiers(P, n, tiers) {
+    var out = [], sisa = P;
+    for (var k = 0; k < tiers.length; k++) {
+      var t = tiers[k], rem = n - t.dari + 1, r, A;
+      var urut = k === 0 ? t.dari === 1 : t.dari === tiers[k - 1].sampai + 1;
+      if (!(t.dari >= 1 && t.sampai >= t.dari && t.sampai <= n) || !urut) break;
+      if (t.angsuran != null) {
+        A = t.angsuran;
+        if (!(A > 0)) break;
+        if (A * rem < sisa - 0.5) return { tiers: out, error: { code: 'angsuranKecil', index: k, sisa: sisa, bulan: rem, minimal: sisa / rem } };
+        r = solveRateFromPayment(sisa, rem, A);
+      } else {
+        r = t.ratePa;
+        if (!(r >= 0)) break;
+        A = pmt(r, rem, sisa);
+      }
+      out.push({ dari: t.dari, sampai: t.sampai, ratePa: r, angsuran: A });
+      for (var m = t.dari; m <= t.sampai; m++) sisa -= A - sisa * r / 12;
+    }
+    return { tiers: out, error: null };
+  }
+
   /* Step-up: segmen anuitas yang seluruhnya tertulis di akad. */
   function scheduleStepUp(P, n, tiers) {
     var res = scheduleSegments(P, n, tiers, { metode: 'anuitas' });
@@ -686,7 +721,7 @@ var FinEngine = (function () {
     FinError: FinError,
     pmt: pmt, solveRateFromPayment: solveRateFromPayment, solveRateFromTotalMargin: solveRateFromTotalMargin, irr: irr,
     scheduleFlat: scheduleFlat, scheduleAnnuity: scheduleAnnuity, scheduleStepUp: scheduleStepUp, validateTiers: validateTiers,
-    scheduleSegments: scheduleSegments, segmentsFixedThenFloat: segmentsFixedThenFloat, upfrontFees: upfrontFees,
+    scheduleSegments: scheduleSegments, resolveTiers: resolveTiers, segmentsFixedThenFloat: segmentsFixedThenFloat, upfrontFees: upfrontFees,
     effectiveCostWithFees: effectiveCostWithFees, earlySettlement: earlySettlement, breakEvenRate: breakEvenRate,
     analyzePayment: analyzePayment, totalFromPa: totalFromPa, paFromTotal: paFromTotal
   };
@@ -974,33 +1009,69 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
   var F3_DEFAULT = { pokok: 400000000, tenor: 240, tiers: [{ dari: 1, sampai: 240, rate: '10,5' }], cmp: '' };
   var f3ShowSisaPokok = false;
 
-  /* Editor daftar jenjang (dipakai Fitur 3 & Fitur 4). */
-  function tierRowHtml(t) {
-    return '<div class="tier-row">' +
-      '<input class="input t-dari" inputmode="numeric" aria-label="Dari bulan" value="' + esc(t.dari) + '">' +
-      '<input class="input t-sampai" inputmode="numeric" aria-label="Sampai bulan" value="' + esc(t.sampai) + '">' +
-      '<input class="input t-rate" inputmode="decimal" aria-label="Margin p.a. (%)" value="' + esc(t.rate) + '">' +
-      '<button type="button" class="x" aria-label="Hapus jenjang" title="Hapus jenjang">×</button></div>';
+  /* Editor daftar jenjang (dipakai Fitur 3 & Fitur 4).
+     Tiap jenjang: margin p.a. ⇄ angsuran per bulan. Isian yang terakhir diketik menjadi sumber (data-src),
+     isian lainnya dihitung otomatis lewat FinEngine.resolveTiers dan diperbarui bila pokok/tenor/jenjang berubah. */
+  function tierRowHtml(t, idx) {
+    var src = t.src === 'ang' ? 'ang' : 'rate';
+    return '<div class="tier-row" data-src="' + src + '">' +
+      '<div class="tr-top"><span class="tr-no">Jenjang ' + (idx + 1) + '</span><span class="tr-lbl">bulan</span>' +
+        '<input class="input t-dari" inputmode="numeric" aria-label="Jenjang ' + (idx + 1) + ': dari bulan" value="' + esc(t.dari) + '">' +
+        '<span class="tr-lbl">s.d.</span>' +
+        '<input class="input t-sampai" inputmode="numeric" aria-label="Jenjang ' + (idx + 1) + ': sampai bulan" value="' + esc(t.sampai) + '">' +
+        '<button type="button" class="x" aria-label="Hapus jenjang ' + (idx + 1) + '" title="Hapus jenjang">×</button></div>' +
+      '<div class="tr-bot">' +
+        '<label class="tr-f f-rate"><span class="tag">Margin p.a.</span><span class="input-wrap"><input class="input bare t-rate" inputmode="decimal" autocomplete="off" value="' + esc(t.rate || '') + '"><span class="adorn suf">%</span></span></label>' +
+        '<span class="tr-eq" aria-hidden="true">⇄</span>' +
+        '<label class="tr-f f-ang"><span class="tag">Angsuran/bulan</span><span class="input-wrap"><span class="adorn pre">Rp</span><input class="input bare t-ang" inputmode="numeric" autocomplete="off" value="' + esc(t.ang || '') + '"></span></label>' +
+      '</div><div class="tr-err" hidden></div></div>';
   }
-  function TierEditor(container, addBtn, tenorInput) {
+  function TierEditor(container, addBtn, tenorInput, pokokFn, pokokInputs) {
+    function rows() { return container.querySelectorAll('.tier-row'); }
     function read() {
-      return Array.prototype.map.call(container.querySelectorAll('.tier-row'), function (row) {
-        return { dari: row.querySelector('.t-dari').value, sampai: row.querySelector('.t-sampai').value, rate: row.querySelector('.t-rate').value };
+      return Array.prototype.map.call(rows(), function (row) {
+        return { dari: row.querySelector('.t-dari').value, sampai: row.querySelector('.t-sampai').value,
+                 rate: row.querySelector('.t-rate').value, ang: row.querySelector('.t-ang').value, src: row.getAttribute('data-src') };
+      });
+    }
+    /* Nilai mentah untuk mesin: hanya isian sumber yang dipakai. */
+    function values() {
+      return read().map(function (t) {
+        return { dari: parseIntStrict(t.dari), sampai: parseIntStrict(t.sampai),
+                 ratePa: t.src === 'rate' ? parsePercent(t.rate) : null,
+                 angsuran: t.src === 'ang' ? (t.ang.trim() ? parseRupiah(t.ang) : NaN) : null };
+      });
+    }
+    function sync() {
+      var rs = rows(), P = pokokFn(), n = parseIntStrict(tenorInput.value);
+      var res = P > 0 && n >= 1 ? E.resolveTiers(P, n, values()) : { tiers: [], error: null };
+      rs.forEach(function (row, i) {
+        var ang = row.getAttribute('data-src') === 'ang', t = res.tiers[i];
+        row.querySelector('.f-rate').classList.toggle('auto', ang);
+        row.querySelector('.f-ang').classList.toggle('auto', !ang);
+        var derived = row.querySelector(ang ? '.t-rate' : '.t-ang');
+        derived.value = t ? (ang ? pctField(t.ratePa) : groupThousands(String(Math.round(t.angsuran)))) : '';
+        var errEl = row.querySelector('.tr-err'), e = res.error && res.error.index === i ? res.error : null;
+        errEl.hidden = !e;
+        errEl.textContent = e ? 'Angsuran terlalu kecil untuk melunasi sisa pokok ' + fmtRp(e.sisa) + ' dalam ' + e.bulan + ' bulan (minimal ' + fmtRp(Math.ceil(e.minimal)) + ').' : '';
       });
     }
     function set(list) {
       container.innerHTML = list.map(tierRowHtml).join('');
-      var rows = container.querySelectorAll('.tier-row');
-      rows.forEach(function (row, idx) {
-        row.querySelector('.x').disabled = rows.length === 1;
+      var rs = rows();
+      rs.forEach(function (row, idx) {
+        row.querySelector('.x').disabled = rs.length === 1;
         row.querySelector('.x').addEventListener('click', function () { remove(idx); });
         ['.t-dari', '.t-sampai'].forEach(function (sel) {
           var el = row.querySelector(sel);
-          el.addEventListener('input', function () { var v = el.value.replace(/\D/g, ''); if (v !== el.value) el.value = v; });
+          el.addEventListener('input', function () { var v = el.value.replace(/\D/g, ''); if (v !== el.value) el.value = v; sync(); });
         });
-        var r = row.querySelector('.t-rate');
-        r.addEventListener('input', function () { var v = r.value.replace(/[^\d,.]/g, ''); if (v !== r.value) r.value = v; });
+        var r = row.querySelector('.t-rate'), a = row.querySelector('.t-ang');
+        r.addEventListener('input', function () { var v = r.value.replace(/[^\d,.]/g, ''); if (v !== r.value) r.value = v; row.setAttribute('data-src', 'rate'); sync(); });
+        attachRupiah(a);
+        a.addEventListener('input', function () { row.setAttribute('data-src', 'ang'); sync(); });
       });
+      sync();
     }
     function remove(idx) {
       var list = read();
@@ -1016,24 +1087,40 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
       var last = list[list.length - 1], lastEnd = parseIntStrict(last && last.sampai);
       var dari = isFinite(lastEnd) ? lastEnd + 1 : '';
       var sampai = isFinite(n) && isFinite(dari) && n >= dari ? n : '';
-      list.push({ dari: dari, sampai: sampai, rate: last ? last.rate : '' });
+      list.push({ dari: dari, sampai: sampai, rate: last ? last.rate : '', src: 'rate' });
       set(list);
-      var rows = container.querySelectorAll('.tier-row');
-      rows[rows.length - 1].querySelector(sampai === '' ? '.t-dari' : '.t-sampai').focus();
+      var rs = rows();
+      rs[rs.length - 1].querySelector(sampai === '' ? '.t-dari' : '.t-sampai').focus();
     });
     // Jika jenjang terakhir tadinya menutup tenor, ikutkan ke tenor baru.
     var prevTenor = null;
     tenorInput.addEventListener('focus', function () { prevTenor = parseIntStrict(tenorInput.value); });
     tenorInput.addEventListener('input', function () {
-      var n = parseIntStrict(tenorInput.value), rows = container.querySelectorAll('.tier-row');
-      if (!rows.length || !(n >= 1)) return;
-      var lastS = rows[rows.length - 1].querySelector('.t-sampai');
-      if (parseIntStrict(lastS.value) === prevTenor) lastS.value = n;
-      prevTenor = n;
+      var n = parseIntStrict(tenorInput.value), rs = rows();
+      if (rs.length && n >= 1) {
+        var lastS = rs[rs.length - 1].querySelector('.t-sampai');
+        if (parseIntStrict(lastS.value) === prevTenor) lastS.value = n;
+        prevTenor = n;
+      }
+      sync();
     });
-    return { read: read, set: set };
+    (pokokInputs || []).forEach(function (el) { el.addEventListener('input', sync); });
+    return { read: read, set: set, values: values, sync: sync };
   }
-  var f3Tiers = TierEditor($('f3Tiers'), $('f3Add'), $('f3Tenor'));
+  /* Jenjang dari editor → [{dari, sampai, ratePa}] lengkap, atau null dengan pesan di errs. */
+  function tiersFromEditor(ed, P, n, errs, prefix) {
+    var vals = ed.values();
+    var shape = vals.map(function (v) { return { dari: v.dari, sampai: v.sampai, ratePa: v.angsuran !== null ? (v.angsuran > 0 ? 0 : NaN) : v.ratePa }; });
+    var e = E.validateTiers(n, shape).map(function (m) { return prefix + m.replace('margin p.a. belum diisi', 'margin p.a. atau angsuran belum diisi'); });
+    if (e.length) { e.forEach(function (m) { errs.push(m); }); return null; }
+    var r = E.resolveTiers(P, n, vals);
+    if (r.error) {
+      errs.push(prefix + 'Jenjang ' + (r.error.index + 1) + ': angsuran terlalu kecil untuk melunasi sisa pokok ' + fmtRp(r.error.sisa) + ' dalam ' + r.error.bulan + ' bulan (minimal ' + fmtRp(Math.ceil(r.error.minimal)) + ').');
+      return null;
+    }
+    return r.tiers;
+  }
+  var f3Tiers = TierEditor($('f3Tiers'), $('f3Add'), $('f3Tenor'), function () { return parseRupiah($('f3Pokok').value); }, [$('f3Pokok')]);
   function f3TenorHint() {
     var n = parseIntStrict($('f3Tenor').value);
     $('f3TenorHint').textContent = n >= 12 ? (n % 12 ? fmtNum(n / 12, 1) : n / 12) + ' tahun' : '';
@@ -1049,12 +1136,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     var P = parseRupiah($('f3Pokok').value), n = parseIntStrict($('f3Tenor').value), errs = [];
     if (!(P > 0)) errs.push('Pokok pembiayaan harus lebih dari 0.');
     if (!(n >= 1)) errs.push('Tenor total harus bilangan bulat minimal 1 bulan.');
-    var tiers = f3Tiers.read().map(function (t) {
-      return { dari: parseIntStrict(t.dari), sampai: parseIntStrict(t.sampai), ratePa: parsePercent(t.rate) };
-    });
+    var tiers = null;
     var cmpRaw = $('f3Cmp').value.trim(), cmpRate = cmpRaw ? parsePercent(cmpRaw) : null;
     if (cmpRaw && !(cmpRate >= 0)) errs.push('Margin pembanding tidak valid.');
-    if (!errs.length) errs = E.validateTiers(n, tiers);
+    if (!errs.length) tiers = tiersFromEditor(f3Tiers, P, n, errs, '');
     if (errs.length) { showAlert('f3Alert', errs); $('f3Out').innerHTML = '<div class="empty">Perbaiki isian untuk melihat hasil.</div>'; f3Last = null; return; }
     var res, cmp = null;
     try {
@@ -1116,7 +1201,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     bFix: '6,5', bFixM: 36, bFloat: '12', bMetode: 'anuitas', bPen: '5', bProv: '1', bAdmin: 1000000
   };
   var f4 = { metode: 'anuitas', sched: 'a', showSisaPokok: false, k: 60 };
-  var f4Tiers = TierEditor($('f4ATiers'), $('f4AAdd'), $('f4Tenor'));
+  var f4Tiers = TierEditor($('f4ATiers'), $('f4AAdd'), $('f4Tenor'), function () { return parseRupiah($('f4Harga').value) - (parseRupiah($('f4Dp').value) || 0); }, [$('f4Harga'), $('f4Dp')]);
   var f4Last = null;
 
   function pctField(x) { return (Math.round(x * 1e6) / 1e4).toFixed(4).replace(/\.?0+$/, '').replace('.', ','); }
@@ -1178,8 +1263,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     if (!(n >= 2)) errs.push('Tenor harus bilangan bulat minimal 2 bulan.');
     var P = harga - dp, segA, segB, a = {}, b = {};
     if (!errs.length) {
-      segA = f4Tiers.read().map(function (t) { return { dari: parseIntStrict(t.dari), sampai: parseIntStrict(t.sampai), ratePa: parsePercent(t.rate), pasti: true }; });
-      E.validateTiers(n, segA).forEach(function (m) { errs.push('A: ' + m); });
+      segA = tiersFromEditor(f4Tiers, P, n, errs, 'A: ');
+      if (segA) segA.forEach(function (t) { t.pasti = true; });
       // Harga jual tunai diisi untuk seluruh aset (seperti di akad); bagian yang dibiayai = harga jual tunai − DP.
       a.tunaiAset = $('f4ATunai').value.trim() ? parseRupiah($('f4ATunai').value) : null;
       if (a.tunaiAset !== null && a.tunaiAset < harga) errs.push('A: Harga jual tunai tidak boleh lebih kecil dari harga aset.');
