@@ -197,7 +197,8 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
     // Margin 9% tetap vs bunga 9% fixed seluruh tenor, tanpa biaya → identik.
     await f4({ harga: '100.000.000', tenor: '36', tiers: '9', bFix: '9', bFixM: '36' });
     let row = await cmpRow('Total biaya');
-    check('9% vs 9% tetap: total biaya sama', row[1] === row[2] && row[3] === 'Rp 0', true);
+    check('9% vs 9% tetap: total biaya sama', row[1] === row[2] && row[3] === 'Sama', true);
+    check('9% vs 9% tetap: kartu total biaya "Sama"', await txt(page, '#f4VCost'), contains('Sama'));
     row = await cmpRow('Biaya efektif');
     check('9% vs 9% tetap: biaya efektif 9,00% keduanya', row[1] + ' / ' + row[2], '9,00% / 9,00%');
     check('tanpa floating: catatan tanpa titik impas', await txt(page, '#f4Note'), contains('tidak ada asumsi floating'));
@@ -228,6 +229,18 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
     check('titik impas: selisih total < Rp 1', be.gap < 1, true);
     check('titik impas tampil = mesin', await txt(page, '#f4BreakEven'), (be.rate * 100).toFixed(2).replace('.', ',') + '%');
     check('angka floating diberi tanda ≈', (await cmpRow('Total biaya'))[2], contains('≈'));
+    // Sorotan nilai lebih rendah & kolom "Lebih rendah"
+    const winOf = (label) => page.$$eval('#f4Cmp tbody tr', (t, l) => {
+      const tr = t.find((x) => x.cells[0].innerText.trim().startsWith(l));
+      return tr.cells[1].classList.contains('win') ? 'A' : tr.cells[2].classList.contains('win') ? 'B' : '-';
+    }, label);
+    check('total biaya: A disorot (lebih rendah)', await winOf('Total biaya'), 'A');
+    check('angsuran bulan 1: B disorot (lebih ringan)', await winOf('Angsuran bulan 1'), 'B');
+    check('kolom Lebih rendah menyebut A + selisih', (await cmpRow('Total biaya'))[3], (v) => /^≈\s*A · Rp [\d.]+$/.test(v));
+    check('kartu total biaya → A', await txt(page, '#f4VCost'), contains('A · Murabahah'));
+    check('kartu angsuran awal → B, bulan 1–36', await txt(page, '#f4VA1'), (v) => v.includes('B · Konvensional') && v.includes('bulan 1–36'));
+    check('kartu kepastian → A', await txt(page, '#f4VCert'), contains('A · Murabahah'));
+    check('catatan beda arah total vs biaya efektif', await page.isVisible('#f4EffNote'), true);
 
     // Pelunasan: murabahah = sisa kewajiban; potongan 100% sisa margin = sisa pokok. Konvensional = sisa pokok × (1 + penalti).
     const st = await page.evaluate(() => {

@@ -140,6 +140,17 @@
   table.cmp .sub2{display:block;font-weight:500;color:var(--slate-500);font-size:.74rem}
   table.cmp th.a,table.cmp th.b{white-space:nowrap}
   .muted{color:var(--slate-500);font-weight:500}
+  table.cmp td.win{font-weight:700;color:var(--navy-900)}
+  table.cmp td.win.a{background:rgba(5,150,105,.09)!important;box-shadow:inset 3px 0 0 var(--ser-a)}
+  table.cmp td.win.b{background:rgba(59,91,219,.09)!important;box-shadow:inset 3px 0 0 var(--ser-b)}
+  table.cmp td.d{font-weight:600;color:var(--slate-600);white-space:nowrap}
+  table.cmp tr.key-row td:first-child{font-weight:700}
+  .verdicts{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.25rem}
+  .verdict{background:#fff;border:1px solid var(--slate-200);border-top:4px solid var(--c);border-radius:var(--r-md);padding:.85rem 1rem;min-width:0;--c:var(--slate-300)}
+  .verdict.a{--c:var(--ser-a)}.verdict.b{--c:var(--ser-b)}
+  .verdict .q{font-size:.75rem;font-weight:600;color:var(--slate-500)}
+  .verdict .w{font-size:1.05rem;font-weight:700;margin:.15rem 0 .2rem;display:flex;align-items:center;gap:.1rem}
+  .verdict .s{font-size:.78rem;color:var(--slate-600)}
   tr.est td{color:var(--slate-500);font-style:italic}
   .legend{display:flex;gap:.4rem 1.1rem;flex-wrap:wrap;font-size:.78rem;color:var(--slate-600);margin-bottom:.5rem}
   .chart-wrap{position:relative;touch-action:pan-y}
@@ -197,7 +208,9 @@
     table.cmp td,table.cmp.sticky td:first-child{display:block;position:static;border:none;padding:0;background:transparent!important;box-shadow:none;white-space:normal;text-align:left;min-width:0}
     table.cmp td:first-child{grid-column:1/-1;font-weight:600;color:var(--navy-900)}
     table.cmp td[data-h]::before{content:attr(data-h);display:block;font-size:.68rem;font-weight:600;color:var(--slate-500);font-style:normal}
-    table.cmp td.d{grid-column:1/-1;font-size:.74rem}
+    table.cmp td.d{grid-column:1/-1;font-size:.74rem;white-space:normal}
+    table.cmp td.win{padding:.15rem .35rem;margin:0 -.35rem;border-radius:4px}
+    .verdicts{grid-template-columns:1fr;gap:.6rem;margin-bottom:1.1rem}
     table.cmp td.d:empty{display:none}
   }
 
@@ -1186,45 +1199,95 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
 
   function hasEst(res) { return res.tiers.some(function (t) { return !t.pasti; }); }
   function approx(res, s) { return (hasEst(res) ? '≈ ' : '') + s; }
-  function signedRp(x) { var v = Math.round(x); return v === 0 ? 'Rp 0' : (v > 0 ? '+' : '−') + fmtRp(Math.abs(v)); }
-  function signedPts(x) { var v = Math.round(x * 10000) / 100; return v === 0 ? '0 poin' : (v > 0 ? '+' : '−') + fmtNum(Math.abs(v), 2) + ' poin'; }
   function describeRates(res, kata) {
     var t = res.tiers;
     if (t.length === 1) return fmtPct(t[0].marginPa, 2) + ' p.a.' + (t[0].pasti ? ' tetap seluruh tenor' : ' (asumsi)');
     if (t.every(function (x) { return x.pasti; })) return 'Berjenjang ' + t.map(function (x) { return fmtPct(x.marginPa, 2); }).join(' → ');
     return fmtPct(t[0].marginPa, 2) + ' tetap ' + (t[0].sampai) + ' bln, lalu ≈ ' + fmtPct(t[1].marginPa, 2) + ' (asumsi ' + kata + ')';
   }
+  /* Baris tabel pembanding. cmp = { a, b, fmt, est, tol }: nilai lebih rendah disorot dan disebut di kolom "Lebih rendah". */
+  function cmpRowFn(hA, hB) {
+    return function (label, va, vb, cmp, cls) {
+      var win = '', note = '';
+      if (cmp) {
+        var d = cmp.b - cmp.a;
+        if (Math.abs(d) < (cmp.tol || 0.5)) note = 'Sama';
+        else {
+          win = d > 0 ? 'a' : 'b';
+          note = (cmp.est ? '≈ ' : '') + '<span class="key ' + win + '"></span>' + win.toUpperCase() + ' · ' + cmp.fmt(Math.abs(d));
+        }
+      }
+      return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td>' + label + '</td>' +
+        '<td class="num' + (win === 'a' ? ' win a' : '') + '" data-h="' + hA + '">' + va + '</td>' +
+        '<td class="num' + (win === 'b' ? ' win b' : '') + '" data-h="' + hB + '">' + vb + '</td>' +
+        '<td class="num d"' + (note ? ' data-h="Lebih rendah"' : '') + '>' + note + '</td></tr>';
+    };
+  }
+  var rpCmp = function (a, b, est) { return { a: Math.round(a), b: Math.round(b), fmt: fmtRp, est: est }; };
+  function fmtJt(x) { return x >= 1e6 ? 'Rp ' + fmtNum(x / 1e6, 1) + ' jt' : fmtRp(x); }
+  /* Berapa bulan pertama berturut-turut produk `win` lebih ringan. */
+  function lighterMonths(win, lose) {
+    var k = 0;
+    while (k < win.rows.length && win.rows[k].angsuran < lose.rows[k].angsuran - 0.5) k++;
+    return k;
+  }
+
   function maxRow(res) { return res.rows.reduce(function (m, r) { return r.angsuran > m.angsuran + 1e-6 ? r : m; }, res.rows[0]); }
 
   function f4Render() {
     var o = f4Last, A = o.resA, B = o.resB, nameA = 'Murabahah', estB = hasEst(B);
     var mxA = maxRow(A), mxB = maxRow(B), hA = 'A · ' + nameA, hB = 'B · Konvensional';
-    var row = function (label, va, vb, diff, cls) {
-      return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td>' + label + '</td><td class="num" data-h="' + hA + '">' + va + '</td><td class="num" data-h="' + hB + '">' + vb +
-        '</td><td class="num muted d"' + (diff ? ' data-h="Selisih B − A"' : '') + '>' + (diff || '') + '</td></tr>';
-    };
+    var row = cmpRowFn(hA, hB);
     var trow = function (label, va, vb) { return '<tr><td>' + label + '</td><td class="txt" data-h="' + hA + '">' + va + '</td><td class="txt" data-h="' + hB + '">' + vb + '</td><td class="d"></td></tr>'; };
-    var h = '<div class="panel" style="margin-bottom:1.25rem"><h2>Ringkasan Perbandingan</h2>' +
-      '<p class="desc">Pokok ' + fmtRp(o.P) + ' · tenor ' + o.n + ' bulan. Angka bertanda ≈ bergantung pada asumsi Anda.</p>' +
+    var estAny = hasEst(A) || estB, fltNote = estB ? ', bila bunga floating ' + fmtPct(o.b.flt, 2) : '';
+
+    // Kartu per dimensi: tidak ada satu "pemenang", tiap dimensi dijawab sendiri.
+    var verdict = function (q, win, w, sTxt, id) {
+      return '<div class="verdict ' + (win || '') + '" id="' + id + '"><div class="q">' + q + '</div><div class="w">' +
+        (win ? '<span class="key ' + win + '"></span>' : '') + w + '</div><div class="s">' + sTxt + '</div></div>';
+    };
+    var dCost = Math.round(o.costB) - Math.round(o.costA), wCost = dCost === 0 ? '' : dCost > 0 ? 'a' : 'b';
+    var dA1 = Math.round(B.rows[0].angsuran) - Math.round(A.rows[0].angsuran), wA1 = dA1 === 0 ? '' : dA1 > 0 ? 'a' : 'b';
+    var nLight = wA1 ? lighterMonths(wA1 === 'a' ? A : B, wA1 === 'a' ? B : A) : 0;
+    var certA = !hasEst(A), certB = !estB, wCert = certA === certB ? '' : certA ? 'a' : 'b';
+    var label = function (w) { return w === 'a' ? hA : hB; };
+    var h = '<div class="verdicts">' +
+      verdict('Total biaya lebih rendah', wCost, wCost ? label(wCost) : 'Sama',
+        wCost ? (estAny ? '≈ ' : '') + fmtJt(Math.abs(dCost)) + ' lebih rendah selama ' + o.n + ' bulan' + fltNote : 'Total biaya keduanya sama', 'f4VCost') +
+      verdict('Angsuran awal lebih ringan', wA1, wA1 ? label(wA1) : 'Sama',
+        wA1 ? fmtRp(Math.abs(dA1)) + '/bulan lebih ringan' + (nLight >= o.n ? ' sepanjang tenor' : ' di bulan 1–' + nLight) : 'Angsuran bulan 1 keduanya sama', 'f4VA1') +
+      verdict('Angsuran lebih pasti', wCert, wCert ? label(wCert) : 'Sama',
+        wCert ? (wCert === 'a' ? 'Harga jual terkunci di akad; B dapat berubah setelah bulan ' + (B.tiers[0].pasti ? B.tiers[0].sampai : 0)
+                               : 'Bunga tetap seluruh tenor')
+              : (certA ? 'Keduanya tetap seluruh tenor' : 'Keduanya memakai asumsi'), 'f4VCert') +
+      '</div>';
+
+    h += '<div class="panel" style="margin-bottom:1.25rem"><h2>Ringkasan Perbandingan</h2>' +
+      '<p class="desc">Pokok ' + fmtRp(o.P) + ' · tenor ' + o.n + ' bulan. Nilai yang lebih rendah disorot. Angka bertanda ≈ bergantung pada asumsi Anda.</p>' +
       '<div class="scroll"><table class="sticky cmp" id="f4Cmp"><thead><tr><th>Komponen</th>' +
-      '<th class="num a"><span class="key a"></span>A · ' + nameA + '</th><th class="num b"><span class="key b"></span>B · Konvensional</th><th class="num">Selisih B − A</th></tr></thead><tbody>' +
+      '<th class="num a"><span class="key a"></span>' + hA + '</th><th class="num b"><span class="key b"></span>' + hB + '</th><th class="num">Lebih rendah</th></tr></thead><tbody>' +
       trow('Jenis transaksi', 'Jual beli; keuntungan berupa margin', 'Pinjam-meminjam uang; keuntungan berupa bunga') +
       trow('Margin / bunga', describeRates(A, 'margin'), describeRates(B, 'floating') + (o.metode === 'pokokTetap' ? '; efektif menurun' : '')) +
-      row('Angsuran bulan 1', fmtRp(A.rows[0].angsuran), fmtRp(B.rows[0].angsuran), signedRp(Math.round(B.rows[0].angsuran) - Math.round(A.rows[0].angsuran))) +
+      row('Angsuran bulan 1', fmtRp(A.rows[0].angsuran), fmtRp(B.rows[0].angsuran), rpCmp(A.rows[0].angsuran, B.rows[0].angsuran, false)) +
       row('Angsuran tertinggi', (mxA.pasti ? '' : '≈ ') + fmtRp(mxA.angsuran) + '<span class="sub2">bulan ' + mxA.bulan + '</span>',
-                                (mxB.pasti ? '' : '≈ ') + fmtRp(mxB.angsuran) + '<span class="sub2">bulan ' + mxB.bulan + '</span>', '') +
-      row('Total angsuran', approx(A, fmtRp(A.totalBayar)), approx(B, fmtRp(B.totalBayar)), signedRp(Math.round(B.totalBayar) - Math.round(A.totalBayar))) +
-      row('Total margin / bunga', approx(A, fmtRp(A.totalMargin)), approx(B, fmtRp(B.totalMargin)), signedRp(Math.round(B.totalMargin) - Math.round(A.totalMargin))) +
-      row('Biaya di muka', fmtRp(o.feeA), fmtRp(o.feeB), signedRp(Math.round(o.feeB) - Math.round(o.feeA))) +
-      row('<b>Total biaya</b><br><span class="muted">angsuran + biaya di muka</span>', approx(A, fmtRp(o.costA)), approx(B, fmtRp(o.costB)), signedRp(Math.round(o.costB) - Math.round(o.costA)), 'hl') +
+                                (mxB.pasti ? '' : '≈ ') + fmtRp(mxB.angsuran) + '<span class="sub2">bulan ' + mxB.bulan + '</span>',
+                                rpCmp(mxA.angsuran, mxB.angsuran, !mxA.pasti || !mxB.pasti)) +
+      row('Total angsuran', approx(A, fmtRp(A.totalBayar)), approx(B, fmtRp(B.totalBayar)), rpCmp(A.totalBayar, B.totalBayar, estAny)) +
+      row('Total margin / bunga', approx(A, fmtRp(A.totalMargin)), approx(B, fmtRp(B.totalMargin)), rpCmp(A.totalMargin, B.totalMargin, estAny)) +
+      row('Biaya di muka', fmtRp(o.feeA), fmtRp(o.feeB), rpCmp(o.feeA, o.feeB, false)) +
+      row('Total biaya<br><span class="muted">angsuran + biaya di muka</span>', approx(A, fmtRp(o.costA)), approx(B, fmtRp(o.costB)), rpCmp(o.costA, o.costB, estAny), 'key-row') +
       (o.rangeB ? row('Total biaya bila asumsi ±2 poin', '<span class="muted">tidak berubah</span>',
-          '≈ ' + fmtRp(o.rangeB[0]) + ' –<br>' + fmtRp(o.rangeB[1]), '') : '') +
-      row('Biaya efektif p.a.<br><span class="muted">termasuk biaya di muka</span>', approx(A, fmtPct(o.effA, 2)), approx(B, fmtPct(o.effB, 2)), signedPts(o.effB - o.effA)) +
+          '≈ ' + fmtRp(o.rangeB[0]) + ' –<br>' + fmtRp(o.rangeB[1]), null) : '') +
+      row('Biaya efektif p.a.<br><span class="muted">termasuk biaya di muka</span>', approx(A, fmtPct(o.effA, 2)), approx(B, fmtPct(o.effB, 2)),
+          { a: o.effA, b: o.effB, tol: 0.00005, est: estAny, fmt: function (v) { return fmtNum(v * 100, 2) + ' poin'; } }) +
       trow('Kepastian', A.tiers.length > 1 ? 'Seluruh jenjang tertulis di akad; harga jual terkunci' : 'Harga jual terkunci di akad seluruh tenor',
                         estB ? 'Tetap s.d. bulan ' + (B.tiers[0].pasti ? B.tiers[0].sampai : 0) + '; setelahnya floating, dapat berubah sewaktu-waktu' : 'Tetap seluruh tenor') +
       trow('Denda keterlambatan', 'Ta’zir: nominal sesuai akad, hanya untuk nasabah mampu yang sengaja menunda; disalurkan ke dana sosial',
                                   'Umumnya % per hari dari tunggakan; menjadi pendapatan bank') +
-      '</tbody></table></div></div>';
+      '</tbody></table></div>' +
+      (wCost && o.effA !== o.effB && (o.effB - o.effA > 0 ? 'a' : 'b') !== wCost
+        ? '<p class="footnote" id="f4EffNote">Total biaya dan biaya efektif bisa menunjuk produk berbeda: biaya efektif ikut menghitung waktu pembayaran, sehingga produk yang angsuran awalnya lebih ringan bisa tampak lebih murah walau total rupiahnya lebih besar.</p>' : '') +
+      '</div>';
 
     // Titik impas (netral)
     if (o.breakEven) {
@@ -1273,19 +1336,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     var totA = o.feeA + sA.dibayar + sA.pelunasan, totB = o.feeB + sB.dibayar + sB.pelunasan;
     var yr = k >= 12 ? ' <span class="muted">(tahun ke-' + Math.ceil(k / 12) + ')</span>' : '';
     $('f4KLabel').innerHTML = 'Bulan ' + k + yr;
-    var row = function (label, va, vb, diff, cls) {
-      return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td>' + label + '</td><td class="num" data-h="A">' + va + '</td><td class="num" data-h="B">' + vb +
-        '</td><td class="num muted d"' + (diff ? ' data-h="Selisih B − A"' : '') + '>' + (diff || '') + '</td></tr>';
-    };
+    var row = cmpRowFn('A · Murabahah', 'B · Konvensional');
     var estB = o.resB.rows.slice(0, k).some(function (r) { return r.pasti === false; });
-    var h = '<div class="scroll"><table class="sticky cmp" id="f4SettleTable"><thead><tr><th>Komponen</th><th class="num a"><span class="key a"></span>A</th><th class="num b"><span class="key b"></span>B</th><th class="num">Selisih B − A</th></tr></thead><tbody>' +
-      '<tr><td>Dasar pelunasan</td><td class="txt" data-h="A">Sisa kewajiban (sisa harga jual)</td><td class="txt" data-h="B">Sisa pokok + penalti</td><td class="d"></td></tr>' +
-      row('Jumlah dasar', fmtRp(sA.dasar), fmtRp(sB.dasar), '') +
-      row('Penalti', '—', fmtRp(sB.penalti) + ' <span class="muted">(' + fmtPct(o.b.pen, 2) + ')</span>', '') +
-      row('Potongan <span class="muted">(asumsi, bukan hak)</span>', sA.potongan ? '−' + fmtRp(sA.potongan) + ' <span class="muted">(' + fmtPct(o.a.pot, 2) + ' sisa margin)</span>' : '— <span class="muted">(0%)</span>', '—', '') +
-      row('<b>Jumlah pelunasan</b>', fmtRp(sA.pelunasan), fmtRp(sB.pelunasan), signedRp(Math.round(sB.pelunasan) - Math.round(sA.pelunasan)), 'hl') +
-      row('Angsuran sudah dibayar <span class="muted">bln 1–' + k + '</span>', fmtRp(sA.dibayar), (estB ? '≈ ' : '') + fmtRp(sB.dibayar), '') +
-      row('<b>Total keluar</b><br><span class="muted">biaya di muka + angsuran + pelunasan</span>', fmtRp(totA), (estB ? '≈ ' : '') + fmtRp(totB), signedRp(Math.round(totB) - Math.round(totA)), 'hl') +
+    var h = '<div class="scroll"><table class="sticky cmp" id="f4SettleTable"><thead><tr><th>Komponen</th><th class="num a"><span class="key a"></span>A · Murabahah</th><th class="num b"><span class="key b"></span>B · Konvensional</th><th class="num">Lebih rendah</th></tr></thead><tbody>' +
+      '<tr><td>Dasar pelunasan</td><td class="txt" data-h="A · Murabahah">Sisa kewajiban (sisa harga jual)</td><td class="txt" data-h="B · Konvensional">Sisa pokok + penalti</td><td class="d"></td></tr>' +
+      row('Jumlah dasar', fmtRp(sA.dasar), fmtRp(sB.dasar), null) +
+      row('Penalti', '—', fmtRp(sB.penalti) + ' <span class="muted">(' + fmtPct(o.b.pen, 2) + ')</span>', null) +
+      row('Potongan <span class="muted">(asumsi, bukan hak)</span>', sA.potongan ? '−' + fmtRp(sA.potongan) + ' <span class="muted">(' + fmtPct(o.a.pot, 2) + ' sisa margin)</span>' : '— <span class="muted">(0%)</span>', '—', null) +
+      row('Jumlah pelunasan', fmtRp(sA.pelunasan), fmtRp(sB.pelunasan), rpCmp(sA.pelunasan, sB.pelunasan, estB), 'key-row') +
+      row('Angsuran sudah dibayar <span class="muted">bln 1–' + k + '</span>', fmtRp(sA.dibayar), (estB ? '≈ ' : '') + fmtRp(sB.dibayar), null) +
+      row('Total keluar<br><span class="muted">biaya di muka + angsuran + pelunasan</span>', fmtRp(totA), (estB ? '≈ ' : '') + fmtRp(totB), rpCmp(totA, totB, estB), 'key-row') +
       '</tbody></table></div>';
     h += '<p class="footnote">Murabahah: utang nasabah adalah sisa harga jual. Potongan pelunasan boleh diberikan lembaga, tetapi tidak wajib dan tidak boleh dijanjikan di akad; angka tanpa potongan adalah batas atas.</p>';
     $('f4Settle').innerHTML = h;
