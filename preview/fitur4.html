@@ -361,14 +361,9 @@
         </div>
 
         <fieldset class="prod prod-a">
-          <legend><span class="key"></span>A · Pembiayaan Syariah</legend>
+          <legend><span class="key"></span>A · Syariah (Murabahah)</legend>
           <div class="fields">
-            <div class="fg full"><span class="l">Akad</span>
-              <div class="opt-grid" id="f4AAkad">
-                <button type="button" class="opt" data-akad="murabahah"><b>Murabahah</b>Jual beli, harga terkunci di akad</button>
-                <button type="button" class="opt" data-akad="mmq"><b>MMQ</b>Milik bertahap, ujrah dapat ditinjau</button>
-              </div></div>
-            <div class="fg full mur-only">
+            <div class="fg full">
               <span class="l">Jenjang Margin Efektif</span>
               <div class="tier-head"><span>Dari bulan</span><span>Sampai bulan</span><span>Margin p.a. (%)</span><span></span></div>
               <div id="f4ATiers"></div>
@@ -376,10 +371,7 @@
               <div class="hint">Satu jenjang = margin tetap seluruh tenor. Lebih dari satu = step-up yang tertulis di akad.</div>
               <div class="import">Isi dari: <button type="button" class="linkbtn" id="f4From2">Fitur 2</button><button type="button" class="linkbtn" id="f4From3">Fitur 3</button></div>
             </div>
-            <div class="fg mmq-only"><label class="l" for="f4AFix">Margin masa tetap</label><div class="input-wrap"><input class="input bare" id="f4AFix" inputmode="decimal" autocomplete="off" data-pct><span class="adorn suf">% p.a.</span></div></div>
-            <div class="fg mmq-only"><label class="l" for="f4AFixM">Lama masa tetap</label><div class="input-wrap"><input class="input bare" id="f4AFixM" inputmode="numeric" autocomplete="off" data-int><span class="adorn suf">Bulan</span></div></div>
-            <div class="fg full mmq-only"><label class="l" for="f4AFloat">Asumsi margin setelah masa tetap</label><div class="input-wrap"><input class="input bare" id="f4AFloat" inputmode="decimal" autocomplete="off" data-pct><span class="adorn suf">% p.a.</span></div><div class="hint">Ujrah MMQ dapat ditinjau ulang sesuai akad. Isi sesuai perkiraan Anda.</div></div>
-            <div class="fg full mur-only"><label class="l" for="f4APot">Asumsi potongan pelunasan dipercepat</label><div class="input-wrap"><input class="input bare" id="f4APot" inputmode="decimal" autocomplete="off" data-pct><span class="adorn suf">% sisa margin</span></div><div class="hint">Asumsi, bukan hak. Potongan adalah kebijakan lembaga dan tidak boleh dijanjikan di akad.</div></div>
+            <div class="fg full"><label class="l" for="f4APot">Asumsi potongan pelunasan dipercepat</label><div class="input-wrap"><input class="input bare" id="f4APot" inputmode="decimal" autocomplete="off" data-pct><span class="adorn suf">% sisa margin</span></div><div class="hint">Asumsi, bukan hak. Potongan adalah kebijakan lembaga dan tidak boleh dijanjikan di akad.</div></div>
             <details class="fees fg full"><summary>Biaya di muka (provisi &amp; administrasi)</summary><div class="fields"><div class="fg"><label class="l" for="f4AProv">Provisi</label><div class="input-wrap"><input class="input bare" id="f4AProv" inputmode="decimal" autocomplete="off" data-pct><span class="adorn suf">% pokok</span></div></div><div class="fg"><label class="l" for="f4AAdmin">Administrasi &amp; lainnya</label><div class="input-wrap"><span class="adorn pre">Rp</span><input class="input bare" id="f4AAdmin" inputmode="numeric" autocomplete="off" data-rupiah></div></div></div></details>
           </div>
         </fieldset>
@@ -586,7 +578,7 @@ var FinEngine = (function () {
     return res;
   }
 
-  /* Masa tetap lalu floating/ditinjau ulang (konvensional & MMQ). fixMonths ≥ n → tetap seluruh tenor. */
+  /* Masa tetap lalu floating (konvensional). fixMonths ≥ n → tetap seluruh tenor. */
   function segmentsFixedThenFloat(n, fixRate, fixMonths, floatRate) {
     if (fixMonths >= n) return [{ dari: 1, sampai: n, ratePa: fixRate, pasti: true }];
     if (fixMonths <= 0) return [{ dari: 1, sampai: n, ratePa: floatRate, pasti: false }];
@@ -607,7 +599,7 @@ var FinEngine = (function () {
 
   /* Pelunasan dipercepat setelah angsuran bulan ke-k dibayar.
      basis 'sisaKewajiban' (murabahah): sisa harga jual − potongan (asumsi, % dari sisa margin belum jatuh tempo).
-     basis 'sisaPokok' (konvensional/MMQ): sisa pokok + penalti % dari yang dilunasi. */
+     basis 'sisaPokok' (konvensional): sisa pokok + penalti % dari yang dilunasi. */
   function earlySettlement(res, k, opts) {
     if (!(k >= 1 && k < res.tenor)) throw new FinError('Bulan pelunasan harus antara 1 dan ' + (res.tenor - 1) + '.');
     var dibayar = 0, sisaMargin = 0, row = res.rows[k - 1];
@@ -1093,26 +1085,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
   /* ================= FITUR 4 ================= */
   var F4_DEFAULT = {
     harga: 500000000, dp: 100000000, tenor: 240,
-    akad: 'murabahah', tiers: [{ dari: 1, sampai: 240, rate: '10,5' }], aPot: '0',
-    aFix: '7', aFixM: 36, aFloat: '11', aProv: '1', aAdmin: 1000000,
+    tiers: [{ dari: 1, sampai: 240, rate: '10,5' }], aPot: '0', aProv: '1', aAdmin: 1000000,
     bFix: '6,5', bFixM: 36, bFloat: '12', bMetode: 'anuitas', bPen: '5', bProv: '1', bAdmin: 1000000
   };
-  var f4 = { akad: 'murabahah', metode: 'anuitas', sched: 'a', showSisaPokok: false, k: 60 };
+  var f4 = { metode: 'anuitas', sched: 'a', showSisaPokok: false, k: 60 };
   var f4Tiers = TierEditor($('f4ATiers'), $('f4AAdd'), $('f4Tenor'));
   var f4Last = null;
 
   function pctField(x) { return (Math.round(x * 1e6) / 1e4).toFixed(4).replace(/\.?0+$/, '').replace('.', ','); }
   function f4Controls() {
-    document.querySelectorAll('#f4AAkad .opt').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-akad') === f4.akad); });
     document.querySelectorAll('#f4BMetode .opt').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-metode') === f4.metode); });
-    document.querySelectorAll('#v4 .mur-only').forEach(function (el) { el.hidden = f4.akad !== 'murabahah'; });
-    document.querySelectorAll('#v4 .mmq-only').forEach(function (el) { el.hidden = f4.akad !== 'mmq'; });
     var n = parseIntStrict($('f4Tenor').value);
     $('f4TenorHint').textContent = n >= 12 ? (n % 12 ? fmtNum(n / 12, 1) : n / 12) + ' tahun' : '';
   }
-  document.querySelectorAll('#f4AAkad .opt').forEach(function (b) {
-    b.addEventListener('click', function () { f4.akad = b.getAttribute('data-akad'); f4Controls(); });
-  });
   document.querySelectorAll('#f4BMetode .opt').forEach(function (b) {
     b.addEventListener('click', function () { f4.metode = b.getAttribute('data-metode'); f4Controls(); });
   });
@@ -1120,8 +1105,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
 
   function f4Fill(d) {
     setRupiah($('f4Harga'), d.harga); setRupiah($('f4Dp'), d.dp); $('f4Tenor').value = d.tenor;
-    f4.akad = d.akad; f4Tiers.set(d.tiers); $('f4APot').value = d.aPot;
-    $('f4AFix').value = d.aFix; $('f4AFixM').value = d.aFixM; $('f4AFloat').value = d.aFloat;
+    f4Tiers.set(d.tiers); $('f4APot').value = d.aPot;
     $('f4AProv').value = d.aProv; setRupiah($('f4AAdmin'), d.aAdmin);
     $('f4BFix').value = d.bFix; $('f4BFixM').value = d.bFixM; $('f4BFloat').value = d.bFloat;
     f4.metode = d.bMetode; $('f4BPen').value = d.bPen; $('f4BProv').value = d.bProv; setRupiah($('f4BAdmin'), d.bAdmin);
@@ -1131,14 +1115,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     if (!f2Last) { showAlert('f4Alert', ['Hitung Fitur 2 terlebih dahulu.']); return; }
     var r = f2Last.res;
     setRupiah($('f4Harga'), r.pokok); setRupiah($('f4Dp'), 0); $('f4Tenor').value = r.tenor;
-    f4.akad = 'murabahah'; f4Tiers.set([{ dari: 1, sampai: r.tenor, rate: pctField(r.marginEfektifPa) }]);
+    f4Tiers.set([{ dari: 1, sampai: r.tenor, rate: pctField(r.marginEfektifPa) }]);
     f4Controls(); f4Compute();
   });
   $('f4From3').addEventListener('click', function () {
     if (!f3Last) { showAlert('f4Alert', ['Hitung Fitur 3 terlebih dahulu.']); return; }
     var r = f3Last.res;
     setRupiah($('f4Harga'), r.pokok); setRupiah($('f4Dp'), 0); $('f4Tenor').value = r.tenor;
-    f4.akad = 'murabahah';
     f4Tiers.set(r.tiers.map(function (t) { return { dari: t.dari, sampai: t.sampai, rate: pctField(t.marginPa) }; }));
     f4Controls(); f4Compute();
   });
@@ -1168,14 +1151,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     if (!(n >= 2)) errs.push('Tenor harus bilangan bulat minimal 2 bulan.');
     var P = harga - dp, segA, segB, a = {}, b = {};
     if (!errs.length) {
-      if (f4.akad === 'murabahah') {
-        segA = f4Tiers.read().map(function (t) { return { dari: parseIntStrict(t.dari), sampai: parseIntStrict(t.sampai), ratePa: parsePercent(t.rate), pasti: true }; });
-        E.validateTiers(n, segA).forEach(function (m) { errs.push('A: ' + m); });
-        a.pot = readPct('f4APot', 'A: Asumsi potongan', errs, false);
-      } else {
-        a = readFixFloat('f4A', { fix: 'A: Margin masa tetap', fixM: 'A: Lama masa tetap', flt: 'A: Asumsi margin setelah masa tetap' }, n, errs);
-        a.pot = 0;
-      }
+      segA = f4Tiers.read().map(function (t) { return { dari: parseIntStrict(t.dari), sampai: parseIntStrict(t.sampai), ratePa: parsePercent(t.rate), pasti: true }; });
+      E.validateTiers(n, segA).forEach(function (m) { errs.push('A: ' + m); });
+      a.pot = readPct('f4APot', 'A: Asumsi potongan', errs, false);
       b = readFixFloat('f4B', { fix: 'B: Bunga masa tetap', fixM: 'B: Lama masa tetap', flt: 'B: Asumsi bunga floating' }, n, errs);
       b.pen = readPct('f4BPen', 'B: Penalti pelunasan', errs, false);
       a.prov = readPct('f4AProv', 'A: Provisi', errs, false); b.prov = readPct('f4BProv', 'B: Provisi', errs, false);
@@ -1183,24 +1161,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     }
     if (errs.length) { showAlert('f4Alert', errs); $('f4Out').innerHTML = '<div class="empty">Perbaiki isian untuk melihat perbandingan.</div>'; f4Last = null; return; }
     try {
-      if (f4.akad === 'mmq') segA = E.segmentsFixedThenFloat(n, a.fix, a.fixM, a.flt);
       segB = E.segmentsFixedThenFloat(n, b.fix, b.fixM, b.flt);
       var resA = E.scheduleSegments(P, n, segA, { metode: 'anuitas' });
       var resB = E.scheduleSegments(P, n, segB, { metode: f4.metode });
       var feeA = E.upfrontFees(P, { provisiPct: a.prov, adminRp: a.admin }), feeB = E.upfrontFees(P, { provisiPct: b.prov, adminRp: b.admin });
       var out = {
-        P: P, n: n, akad: f4.akad, metode: f4.metode, a: a, b: b, resA: resA, resB: resB, feeA: feeA, feeB: feeB,
+        P: P, n: n, metode: f4.metode, a: a, b: b, resA: resA, resB: resB, feeA: feeA, feeB: feeB,
         effA: E.effectiveCostWithFees(resA, feeA), effB: E.effectiveCostWithFees(resB, feeB)
       };
       out.costA = resA.totalBayar + feeA; out.costB = resB.totalBayar + feeB;
       // Titik impas & rentang: hanya bila ada asumsi floating.
       var costBAt = function (r) { return E.scheduleSegments(P, n, E.segmentsFixedThenFloat(n, b.fix, b.fixM, r), { metode: f4.metode }).totalBayar + feeB; };
-      var costAAt = function (r) { return E.scheduleSegments(P, n, E.segmentsFixedThenFloat(n, a.fix, a.fixM, r), { metode: 'anuitas' }).totalBayar + feeA; };
       if (b.flt !== null) {
         out.breakEven = E.breakEvenRate(costBAt, out.costA);
         out.rangeB = [costBAt(Math.max(0, b.flt - 0.02)), costBAt(b.flt + 0.02)];
       }
-      if (f4.akad === 'mmq' && a.flt !== null) out.rangeA = [costAAt(Math.max(0, a.flt - 0.02)), costAAt(a.flt + 0.02)];
     } catch (err) { showAlert('f4Alert', errMsgs(err)); $('f4Out').innerHTML = ''; f4Last = null; return; }
     showAlert('f4Alert', null);
     f4.k = Math.min(Math.max(1, f4.k), n - 1);
@@ -1221,8 +1196,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
   function maxRow(res) { return res.rows.reduce(function (m, r) { return r.angsuran > m.angsuran + 1e-6 ? r : m; }, res.rows[0]); }
 
   function f4Render() {
-    var o = f4Last, A = o.resA, B = o.resB, mur = o.akad === 'murabahah';
-    var nameA = mur ? 'Murabahah' : 'MMQ', estA = hasEst(A), estB = hasEst(B);
+    var o = f4Last, A = o.resA, B = o.resB, nameA = 'Murabahah', estB = hasEst(B);
     var mxA = maxRow(A), mxB = maxRow(B), hA = 'A · ' + nameA, hB = 'B · Konvensional';
     var row = function (label, va, vb, diff, cls) {
       return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td>' + label + '</td><td class="num" data-h="' + hA + '">' + va + '</td><td class="num" data-h="' + hB + '">' + vb +
@@ -1233,7 +1207,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
       '<p class="desc">Pokok ' + fmtRp(o.P) + ' · tenor ' + o.n + ' bulan. Angka bertanda ≈ bergantung pada asumsi Anda.</p>' +
       '<div class="scroll"><table class="sticky cmp" id="f4Cmp"><thead><tr><th>Komponen</th>' +
       '<th class="num a"><span class="key a"></span>A · ' + nameA + '</th><th class="num b"><span class="key b"></span>B · Konvensional</th><th class="num">Selisih B − A</th></tr></thead><tbody>' +
-      trow('Jenis transaksi', mur ? 'Jual beli; keuntungan berupa margin' : 'Kepemilikan bersama + sewa (ujrah)', 'Pinjam-meminjam uang; keuntungan berupa bunga') +
+      trow('Jenis transaksi', 'Jual beli; keuntungan berupa margin', 'Pinjam-meminjam uang; keuntungan berupa bunga') +
       trow('Margin / bunga', describeRates(A, 'margin'), describeRates(B, 'floating') + (o.metode === 'pokokTetap' ? '; efektif menurun' : '')) +
       row('Angsuran bulan 1', fmtRp(A.rows[0].angsuran), fmtRp(B.rows[0].angsuran), signedRp(Math.round(B.rows[0].angsuran) - Math.round(A.rows[0].angsuran))) +
       row('Angsuran tertinggi', (mxA.pasti ? '' : '≈ ') + fmtRp(mxA.angsuran) + '<span class="sub2">bulan ' + mxA.bulan + '</span>',
@@ -1242,12 +1216,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
       row('Total margin / bunga', approx(A, fmtRp(A.totalMargin)), approx(B, fmtRp(B.totalMargin)), signedRp(Math.round(B.totalMargin) - Math.round(A.totalMargin))) +
       row('Biaya di muka', fmtRp(o.feeA), fmtRp(o.feeB), signedRp(Math.round(o.feeB) - Math.round(o.feeA))) +
       row('<b>Total biaya</b><br><span class="muted">angsuran + biaya di muka</span>', approx(A, fmtRp(o.costA)), approx(B, fmtRp(o.costB)), signedRp(Math.round(o.costB) - Math.round(o.costA)), 'hl') +
-      (o.rangeA || o.rangeB ? row('Total biaya bila asumsi ±2 poin',
-          o.rangeA ? '≈ ' + fmtRp(o.rangeA[0]) + ' –<br>' + fmtRp(o.rangeA[1]) : '<span class="muted">tidak berubah</span>',
-          o.rangeB ? '≈ ' + fmtRp(o.rangeB[0]) + ' –<br>' + fmtRp(o.rangeB[1]) : '<span class="muted">tidak berubah</span>', '') : '') +
+      (o.rangeB ? row('Total biaya bila asumsi ±2 poin', '<span class="muted">tidak berubah</span>',
+          '≈ ' + fmtRp(o.rangeB[0]) + ' –<br>' + fmtRp(o.rangeB[1]), '') : '') +
       row('Biaya efektif p.a.<br><span class="muted">termasuk biaya di muka</span>', approx(A, fmtPct(o.effA, 2)), approx(B, fmtPct(o.effB, 2)), signedPts(o.effB - o.effA)) +
-      trow('Kepastian', mur ? (A.tiers.length > 1 ? 'Seluruh jenjang tertulis di akad; harga jual terkunci' : 'Harga jual terkunci di akad seluruh tenor')
-                            : (estA ? 'Tetap s.d. bulan ' + A.tiers[0].sampai + '; setelahnya ujrah dapat ditinjau ulang' : 'Tetap seluruh tenor'),
+      trow('Kepastian', A.tiers.length > 1 ? 'Seluruh jenjang tertulis di akad; harga jual terkunci' : 'Harga jual terkunci di akad seluruh tenor',
                         estB ? 'Tetap s.d. bulan ' + (B.tiers[0].pasti ? B.tiers[0].sampai : 0) + '; setelahnya floating, dapat berubah sewaktu-waktu' : 'Tetap seluruh tenor') +
       trow('Denda keterlambatan', 'Ta’zir: nominal sesuai akad, hanya untuk nasabah mampu yang sengaja menunda; disalurkan ke dana sosial',
                                   'Umumnya % per hari dari tunggakan; menjadi pendapatan bank') +
@@ -1262,7 +1234,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
       else if (be.status === 'diAtasPadaNol')
         txt = '<b>Titik impas:</b> walau bunga floating B 0%, total biaya B tetap lebih tinggi dari A.';
       else txt = '<b>Titik impas:</b> total biaya B tetap lebih rendah dari A pada kisaran bunga floating yang wajar.';
-      if (!mur && estA) txt += ' Total biaya A juga bergantung pada asumsi margin setelah masa tetap (' + fmtPct(o.a.flt, 2) + ').';
       h += '<div class="note green" id="f4Note">' + txt + '</div>';
     } else {
       h += '<div class="note green" id="f4Note">B memakai bunga tetap seluruh tenor, jadi tidak ada asumsi floating untuk dibandingkan.</div>';
@@ -1283,7 +1254,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
       '<div class="seg" id="f4SchedSel"><button type="button" class="opt" data-s="a"><b>A · ' + nameA + '</b></button><button type="button" class="opt" data-s="b"><b>B · Konvensional</b></button></div><br>' +
       '<label class="toggle" id="f4ToggleWrap"><input type="checkbox" id="f4Toggle"> Tampilkan sisa pokok pembiayaan</label>' +
       '<div id="f4Sched"></div></div>' +
-      '<p class="disclaimer">Hasil simulasi, bukan penawaran. Bunga floating dan margin setelah masa tetap adalah asumsi Anda; ketentuan sebenarnya mengikuti akad atau perjanjian masing-masing lembaga.</p>';
+      '<p class="disclaimer">Hasil simulasi, bukan penawaran. Bunga floating adalah asumsi Anda; ketentuan sebenarnya mengikuti akad atau perjanjian masing-masing lembaga.</p>';
 
     $('f4Out').innerHTML = h;
     $('f4K').addEventListener('input', function () { f4.k = +this.value; f4RenderSettle(); });
@@ -1295,8 +1266,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
   }
 
   function f4RenderSettle() {
-    var o = f4Last, k = f4.k, mur = o.akad === 'murabahah';
-    var sA = E.earlySettlement(o.resA, k, mur ? { basis: 'sisaKewajiban', potonganPct: o.a.pot } : { basis: 'sisaPokok', penaltyPct: 0 });
+    var o = f4Last, k = f4.k;
+    var sA = E.earlySettlement(o.resA, k, { basis: 'sisaKewajiban', potonganPct: o.a.pot });
     var sB = E.earlySettlement(o.resB, k, { basis: 'sisaPokok', penaltyPct: o.b.pen });
     var totA = o.feeA + sA.dibayar + sA.pelunasan, totB = o.feeB + sB.dibayar + sB.pelunasan;
     var yr = k >= 12 ? ' <span class="muted">(tahun ke-' + Math.ceil(k / 12) + ')</span>' : '';
@@ -1305,29 +1276,28 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
       return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td>' + label + '</td><td class="num" data-h="A">' + va + '</td><td class="num" data-h="B">' + vb +
         '</td><td class="num muted d"' + (diff ? ' data-h="Selisih B − A"' : '') + '>' + (diff || '') + '</td></tr>';
     };
-    var estA = o.resA.rows.slice(0, k).some(function (r) { return r.pasti === false; });
     var estB = o.resB.rows.slice(0, k).some(function (r) { return r.pasti === false; });
     var h = '<div class="scroll"><table class="sticky cmp" id="f4SettleTable"><thead><tr><th>Komponen</th><th class="num a"><span class="key a"></span>A</th><th class="num b"><span class="key b"></span>B</th><th class="num">Selisih B − A</th></tr></thead><tbody>' +
-      '<tr><td>Dasar pelunasan</td><td class="txt" data-h="A">' + (mur ? 'Sisa kewajiban (sisa harga jual)' : 'Sisa porsi kepemilikan lembaga (≈ sisa pokok)') + '</td><td class="txt" data-h="B">Sisa pokok + penalti</td><td class="d"></td></tr>' +
+      '<tr><td>Dasar pelunasan</td><td class="txt" data-h="A">Sisa kewajiban (sisa harga jual)</td><td class="txt" data-h="B">Sisa pokok + penalti</td><td class="d"></td></tr>' +
       row('Jumlah dasar', fmtRp(sA.dasar), fmtRp(sB.dasar), '') +
       row('Penalti', '—', fmtRp(sB.penalti) + ' <span class="muted">(' + fmtPct(o.b.pen, 2) + ')</span>', '') +
-      (mur ? row('Potongan <span class="muted">(asumsi, bukan hak)</span>', sA.potongan ? '−' + fmtRp(sA.potongan) + ' <span class="muted">(' + fmtPct(o.a.pot, 2) + ' sisa margin)</span>' : '— <span class="muted">(0%)</span>', '—', '') : '') +
+      row('Potongan <span class="muted">(asumsi, bukan hak)</span>', sA.potongan ? '−' + fmtRp(sA.potongan) + ' <span class="muted">(' + fmtPct(o.a.pot, 2) + ' sisa margin)</span>' : '— <span class="muted">(0%)</span>', '—', '') +
       row('<b>Jumlah pelunasan</b>', fmtRp(sA.pelunasan), fmtRp(sB.pelunasan), signedRp(Math.round(sB.pelunasan) - Math.round(sA.pelunasan)), 'hl') +
-      row('Angsuran sudah dibayar <span class="muted">bln 1–' + k + '</span>', (estA ? '≈ ' : '') + fmtRp(sA.dibayar), (estB ? '≈ ' : '') + fmtRp(sB.dibayar), '') +
-      row('<b>Total keluar</b><br><span class="muted">biaya di muka + angsuran + pelunasan</span>', (estA ? '≈ ' : '') + fmtRp(totA), (estB ? '≈ ' : '') + fmtRp(totB), signedRp(Math.round(totB) - Math.round(totA)), 'hl') +
+      row('Angsuran sudah dibayar <span class="muted">bln 1–' + k + '</span>', fmtRp(sA.dibayar), (estB ? '≈ ' : '') + fmtRp(sB.dibayar), '') +
+      row('<b>Total keluar</b><br><span class="muted">biaya di muka + angsuran + pelunasan</span>', fmtRp(totA), (estB ? '≈ ' : '') + fmtRp(totB), signedRp(Math.round(totB) - Math.round(totA)), 'hl') +
       '</tbody></table></div>';
-    if (mur) h += '<p class="footnote">Murabahah: utang nasabah adalah sisa harga jual. Potongan pelunasan boleh diberikan lembaga, tetapi tidak wajib dan tidak boleh dijanjikan di akad; angka tanpa potongan adalah batas atas.</p>';
+    h += '<p class="footnote">Murabahah: utang nasabah adalah sisa harga jual. Potongan pelunasan boleh diberikan lembaga, tetapi tidak wajib dan tidak boleh dijanjikan di akad; angka tanpa potongan adalah batas atas.</p>';
     $('f4Settle').innerHTML = h;
   }
 
   function f4RenderSched() {
-    var o = f4Last, isA = f4.sched === 'a', res = isA ? o.resA : o.resB, mur = o.akad === 'murabahah';
+    var o = f4Last, isA = f4.sched === 'a', res = isA ? o.resA : o.resB;
     document.querySelectorAll('#f4SchedSel .opt').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-s') === f4.sched); });
-    var kewajiban = isA && mur;
+    var kewajiban = isA;
     $('f4ToggleWrap').hidden = !kewajiban;
     var opts = { jenjang: true, markEst: true, kewajiban: kewajiban, sisaPokok: !kewajiban || f4.showSisaPokok,
-      periodeLabel: isA && mur ? 'Jenjang' : 'Periode', marginLabel: isA ? 'Angsuran Margin' : 'Angsuran Bunga' };
-    if (!(isA && mur)) opts.periodeFmt = function (r) { return (r.pasti ? 'Tetap · ' : 'Floating ≈ ') + fmtPct(r.marginPa, 2); };
+      periodeLabel: isA ? 'Jenjang' : 'Periode', marginLabel: isA ? 'Angsuran Margin' : 'Angsuran Bunga' };
+    if (!isA) opts.periodeFmt = function (r) { return (r.pasti ? 'Tetap · ' : 'Floating ≈ ') + fmtPct(r.marginPa, 2); };
     $('f4Sched').innerHTML = scheduleTable(res, opts);
   }
 
@@ -1337,7 +1307,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     if (!f4Last || !wrap || !wrap.clientWidth) return;
     var o = f4Last, n = o.n, W = wrap.clientWidth, H = W < 520 ? 230 : 290;
     var m = { l: 58, r: 26, t: 10, b: 28 }, pw = W - m.l - m.r, ph = H - m.t - m.b;
-    var series = [{ key: 'a', name: 'A · ' + (o.akad === 'murabahah' ? 'Murabahah' : 'MMQ'), color: '#059669', res: o.resA },
+    var series = [{ key: 'a', name: 'A · Murabahah', color: '#059669', res: o.resA },
                   { key: 'b', name: 'B · Konvensional', color: '#3b5bdb', res: o.resB }];
     var maxV = 0;
     series.forEach(function (sr) { sr.res.rows.forEach(function (r) { if (r.angsuran > maxV) maxV = r.angsuran; }); });

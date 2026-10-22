@@ -177,13 +177,11 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
       await page.evaluate(() => FinUI.showTab(4));
       await page.click('#f4Reset');
       await page.fill('#f4Harga', o.harga); await page.fill('#f4Dp', o.dp || '0'); await page.fill('#f4Tenor', o.tenor);
-      await page.click('#f4AAkad .opt[data-akad="' + (o.akad || 'murabahah') + '"]');
       if (o.tiers) {
         const r = page.locator('#f4ATiers .tier-row');
         await r.nth(0).locator('.t-sampai').fill(o.tenor); await r.nth(0).locator('.t-rate').fill(o.tiers);
       }
-      if (o.aFloat !== undefined) await page.fill('#f4AFloat', o.aFloat);
-      if ((o.akad || 'murabahah') === 'murabahah') await page.fill('#f4APot', o.pot || '0');
+      await page.fill('#f4APot', o.pot || '0');
       await page.fill('#f4BFix', o.bFix); await page.fill('#f4BFixM', o.bFixM); await page.fill('#f4BFloat', o.bFloat || '');
       await page.click('#f4BMetode .opt[data-metode="' + (o.metode || 'anuitas') + '"]');
       await page.fill('#f4BPen', o.pen || '0');
@@ -251,9 +249,10 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
     check('isi dari Fitur 3: 2 jenjang', await page.$$eval('#f4ATiers .tier-row', (r) => r.map((x) => x.querySelector('.t-dari').value + '-' + x.querySelector('.t-sampai').value + ':' + x.querySelector('.t-rate').value).join(' ')), '1-48:8,34 49-264:13,14');
     check('isi dari Fitur 3: angsuran awal A = Rp 3.312.133', (await cmpRow('Angsuran bulan 1'))[1], 'Rp 3.312.133');
 
-    // Validasi MMQ tanpa asumsi margin.
-    await f4({ harga: '100.000.000', tenor: '120', akad: 'mmq', aFloat: '', bFix: '9', bFixM: '120' });
-    check('MMQ tanpa asumsi margin → error', await txt(page, '#f4Alert'), contains('Asumsi margin setelah masa tetap belum diisi'));
+    // Masa tetap lebih pendek dari tenor tanpa asumsi floating → error.
+    await f4({ harga: '100.000.000', tenor: '120', tiers: '9', bFix: '9', bFixM: '36', bFloat: '' });
+    check('tanpa asumsi floating → error', await txt(page, '#f4Alert'), contains('B: Asumsi bunga floating belum diisi'));
+    check('tidak ada pilihan MMQ', await page.$$eval('#v4', (v) => /MMQ/.test(v[0].textContent)), false);
     await page.click('#f4Reset');
     check('grafik tergambar', await page.$$eval('#f4Chart path', (p) => p.length), (v) => v >= 3);
   }
