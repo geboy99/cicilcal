@@ -173,6 +173,7 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
   const hasF4 = await page.$('#v4') !== null;
   if (hasF4) {
     console.log('F4 Bandingkan Syariah & Konvensional');
+    const fatwa = (await page.$('#f4ATunai')) !== null;   // pelunasan murabahah: rumus harga saat pelunasan
     const f4 = async (o) => {
       await page.evaluate(() => FinUI.showTab(4));
       await page.click('#f4Reset');
@@ -181,7 +182,8 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
         const r = page.locator('#f4ATiers .tier-row');
         await r.nth(0).locator('.t-sampai').fill(o.tenor); await r.nth(0).locator('.t-rate').fill(o.tiers);
       }
-      await page.fill('#f4APot', o.pot || '0');
+      if (fatwa) { await page.fill('#f4ATunai', o.tunai || ''); await page.fill('#f4ABiaya', o.biaya || ''); }
+      else await page.fill('#f4APot', o.pot || '0');
       await page.fill('#f4BFix', o.bFix); await page.fill('#f4BFixM', o.bFixM); await page.fill('#f4BFloat', o.bFloat || '');
       await page.click('#f4BMetode .opt[data-metode="' + (o.metode || 'anuitas') + '"]');
       await page.fill('#f4BPen', o.pen || '0');
@@ -249,21 +251,49 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
     check('kartu kepastian → A', await txt(page, '#f4VCert'), contains('A · Murabahah'));
     check('catatan beda arah total vs biaya efektif', await page.isVisible('#f4EffNote'), true);
 
-    // Pelunasan: murabahah = sisa kewajiban; potongan 100% sisa margin = sisa pokok. Konvensional = sisa pokok × (1 + penalti).
-    const st = await page.evaluate(() => {
+    // Pelunasan: konvensional = sisa pokok × (1 + penalti); murabahah sesuai varian aplikasi.
+    const st = await page.evaluate((fw) => {
       const E = FinEngine, r = E.scheduleSegments(4e8, 240, [{ dari: 1, sampai: 240, ratePa: 0.105 }]);
-      const s0 = E.earlySettlement(r, 60, { basis: 'sisaKewajiban', potonganPct: 0 });
-      const s1 = E.earlySettlement(r, 60, { basis: 'sisaKewajiban', potonganPct: 1 });
       const b = E.earlySettlement(r, 60, { basis: 'sisaPokok', penaltyPct: 0.05 });
-      return [s0.pelunasan - r.rows[59].sisaKewajiban, s1.pelunasan - r.rows[59].sisaPokok, b.pelunasan - r.rows[59].sisaPokok * 1.05];
-    });
+      const out = [b.pelunasan - r.rows[59].sisaPokok * 1.05];
+      if (fw) {
+        // Contoh di fatwa: harga tunai 10, harga tangguh 20, 10 bulan (angsuran 2). Bulan ke-5: harga 15, dibayar 10 → sisa 5.
+        const P = 10, n = 10, rr = E.scheduleSegments(P, n, [{ dari: 1, sampai: n, ratePa: E.solveRateFromPayment(P, n, 2) }]);
+        const f = E.earlySettlement(rr, 5, { basis: 'murabahah' });
+        out.push(f.hargaSaatLunas - 15, f.pelunasan - 5);
+        // Contoh bawaan: harga jual tunai = pokok → pokok × (n − k)/n.
+        out.push(E.earlySettlement(r, 60, { basis: 'murabahah' }).pelunasan - 3e8);
+      } else {
+        out.push(E.earlySettlement(r, 60, { basis: 'sisaKewajiban', potonganPct: 0 }).pelunasan - r.rows[59].sisaKewajiban,
+                 E.earlySettlement(r, 60, { basis: 'sisaKewajiban', potonganPct: 1 }).pelunasan - r.rows[59].sisaPokok);
+      }
+      return out;
+    }, fatwa);
     check('pelunasan: rumus dasar, potongan, penalti', st.every((d) => Math.abs(d) < 1e-3), true);
     await page.fill('#f4K', '60').catch(() => {});
     await page.$eval('#f4K', (el) => { el.value = '60'; el.dispatchEvent(new Event('input')); });
     check('slider pelunasan bulan 60', await txt(page, '#f4KLabel'), contains('Bulan 60'));
 
     // Pelunasan murabahah sebagai rentang (bila isian potongan kosong).
-    if (((await page.getAttribute('#f4APot', 'placeholder')) || '').includes('rentang')) {
+    if (fatwa) {
+      const settleF = (l) => page.$$eval('#f4SettleTable tbody tr', (t, x) => {
+        const tr = t.find((r) => r.cells[0].innerText.trim().startsWith(x)); return tr ? Array.from(tr.cells).map((c) => c.innerText.replace(/\s+/g, ' ').trim()) : null;
+      }, l);
+      const setK = () => page.$eval('#f4K', (el) => { el.value = '60'; el.dispatchEvent(new Event('input')); });
+      await page.click('#f4Reset'); await setK();
+      let fr = await settleF('Jumlah pelunasan');
+      check('fatwa: bawaan bulan 60 → A Rp 300.000.000', fr[1], 'Rp 300.000.000');
+      check('fatwa: A lebih rendah dari B Rp 70.312.535', fr[3], (v) => v.includes('A · Rp 70.312.535'));
+      check('fatwa: harga jual tunai diberi label asumsi', (await settleF('Harga jual tunai'))[1], contains('asumsi'));
+      check('fatwa: tambahan harga 60/240 × margin', (await settleF('Tambahan harga'))[1], '+Rp 139.611.173');
+      await page.fill('#f4ATunai', '520.000.000'); await page.fill('#f4ABiaya', '1.000.000'); await page.click('#f4Form button[type=submit]'); await setK();
+      fr = await settleF('Jumlah pelunasan');
+      check('fatwa: harga jual tunai 520 jt + biaya 1 jt → Rp 316.000.000', fr[1], 'Rp 316.000.000');
+      await page.fill('#f4ATunai', '450.000.000'); await page.click('#f4Form button[type=submit]');
+      check('fatwa: harga jual tunai < harga aset → error', await txt(page, '#f4Alert'), contains('tidak boleh lebih kecil dari harga aset'));
+      await page.click('#f4Reset');
+    }
+    if ((await page.$('#f4APot')) && ((await page.getAttribute('#f4APot', 'placeholder')) || '').includes('rentang')) {
       await page.click('#f4Reset');
       await page.$eval('#f4K', (el) => { el.value = '60'; el.dispatchEvent(new Event('input')); });
       const settle = (l) => page.$$eval('#f4SettleTable tbody tr', (t, x) => {
