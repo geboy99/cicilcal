@@ -1,6 +1,6 @@
-# Handover 2 — Fitur 4: Bandingkan Syariah & Konvensional
+# Spesifikasi Fitur 4 — Bandingkan Syariah & Konvensional
 
-Lanjutan `HANDOVER.md` §9 (Tahap A). Status: **sudah diimplementasikan di `index.html`**. Dokumen ini mencatat keputusan, rumus, dan angka uji yang disepakati.
+Lanjutan `HANDOVER.md` §9 (Tahap A). Dokumen ini adalah acuan keputusan, rumus, dan angka uji Fitur 4, dan diperbarui bila keputusan berubah. Riwayat perubahan ada di `CHANGELOG.md`.
 
 ---
 
@@ -48,11 +48,33 @@ Total biaya = total angsuran + biaya di muka. Titik impas = bunga floating B yan
 6. **Jadwal** A/B dengan kolom setara: … Total Angsuran, **Sisa Kewajiban** (+ sakelar sisa pokok). Di B judulnya `Sisa Kewajiban ≈` bila ada floating, dengan catatan bahwa pelunasan konvensional dihitung dari sisa pokok + penalti.
 7. HP: tabel perbandingan menjadi kartu per baris (A | B berdampingan, "Lebih rendah" di bawah).
 
-## 4. Dasar ketentuan pelunasan (perlu verifikasi teks resmi sebelum rilis)
+## 4. Dasar ketentuan pelunasan (diverifikasi dari teks resmi)
 
-- **Murabahah — Fatwa DSN-MUI 153/DSN-MUI/VI/2022** (menggantikan 23/2002): potongan pelunasan sebelum jatuh tempo **wajib** diberikan, tidak boleh diperjanjikan di akad; besarnya tidak ditetapkan fatwa. Ini mengoreksi dokumen riset sebelumnya yang masih menyebut "tidak wajib" (46/2005).
-- **MMQ — Pedoman Implementasi DSN-MUI 01/2013**: pada percepatan pengalihan hishshah, nasabah membayar sisa hishshah + sisa pendapatan yang disepakati; lembaga *boleh* memberi diskon (tanazul). Praktik yang dilaporkan: sisa porsi + ujrah bulan berjalan (≈ sisa pokok) → dipakai sebagai acuan batas bawah, bukan sebagai produk.
-- Sumber diperoleh dari ringkasan jurnal; unduhan PDF resmi diblokir di lingkungan pengerjaan. Cek bunyi pasal di dsnmui.or.id. Nomor fatwa **tidak** ditampilkan di UI.
+**Fatwa DSN-MUI No. 153/DSN-MUI/VI/2022** — Pelunasan Utang Pembiayaan Murabahah Sebelum Jatuh Tempo (24 Juni 2022):
+- Ketentuan Umum: *Tsaman Naqdy* = harga jual tunai; *Qimah Ismiyyah* = harga jual tidak tunai yang disepakati saat akad; *Qimah Haliyyah* = harga saat pelunasan = harga jual tunai + tambahan harga berdasarkan waktu yang telah dilewati.
+- Ketiga.1: saat akad **harus disepakati** harga perolehan, harga jual tunai, dan harga jual tidak tunai.
+- Ketiga.3: bila dilunasi sebelum jatuh tempo (atas kehendak nasabah maupun LKS), LKS **wajib** memberi potongan dari *Qimah Ismiyyah*.
+- Ketiga.4: sisa yang dibayar = *Qimah Haliyyah* − angsuran yang telah dibayar.
+- Ketiga.5: bila atas kehendak nasabah, LKS boleh mengenakan biaya riil dan biaya administrasi pengakhiran akad (mengacu Fatwa 134/2020).
+- Contoh di konsideran (Ibnu 'Abidin / al-Mishri): harga tunai 10, harga tangguh 20 untuk 10 bulan (angsuran 2/bulan). Pelunasan di bulan ke-5 → harga wajib 10 + 10 × 5/10 = 15; sudah dibayar 8 (4 bulan) → sisa 7. Tambahan harga dihitung **sebanding waktu** (1/bulan).
+- Fatwa ini mengubah Fatwa 23/2002, yang dulu menyatakan potongan *boleh*, besarnya kebijakan LKS, dan tidak diperjanjikan dalam akad.
+
+Rumus untuk kalkulator (n = tenor, k = bulan pelunasan setelah angsuran ke-k, TN = harga jual tunai bagian yang dibiayai, QI = total angsuran):
+```
+Qimah Haliyyah_k = TN + (QI − TN) × k / n
+Pelunasan_k      = Qimah Haliyyah_k − Σ angsuran 1..k  (+ biaya riil/administrasi, opsional)
+```
+Bila TN = pokok dan angsuran tetap, hasilnya = pokok × (n − k)/n, lebih kecil dari sisa pokok anuitas (karena porsi margin anuitas lebih besar di awal).
+
+**Status implementasi: belum sesuai.** `index.html` saat ini menampilkan rentang sisa pokok – sisa kewajiban dengan catatan "besarnya ditetapkan lembaga dan tidak diperjanjikan di akad". Menunggu keputusan koreksi.
+
+**Pedoman Implementasi DSN-MUI No. 01/DSN-MUI/X/2013** — Musyarakah Mutanaqishah (4 November 2013):
+- 5.j: nasabah boleh mengalihkan hishshah bank dengan jangka waktu dipercepat **atas persetujuan bank**.
+- 7.b.i: kewajiban nasabah = sisa hishshah bank (outstanding pokok) + sisa pendapatan yang belum diselesaikan sebagaimana diperjanjikan dalam akad.
+- 7.b.ii: bank *boleh* memberi discount (tanazulul haqq).
+- 7.a: denda keterlambatan (ta'zir) diakui sebagai dana kebajikan; ganti rugi (ta'widh) berupa biaya penagihan dan eksekusi berdasarkan biaya historis nyata.
+
+Nomor fatwa **tidak** ditampilkan di UI.
 
 ## 5. Uji penerimaan (otomatis di `tests/acceptance.cjs`)
 
