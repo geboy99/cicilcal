@@ -103,7 +103,7 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
   await page.click('#f1Form button[type=submit]');
   check('alert tampil', await page.isVisible('#f1Alert'), true);
 
-  console.log('#5 F2 100jt / Margin Total 27% / 36 / Efektif (Anuitas)');
+  console.log('#5 F2 100jt / Total Margin 27% / 36 / Efektif (Anuitas)');
   await f2Setup(page, '100.000.000', '36', 'total', '27', 'anuitas');
   check('margin efektif 16,24%', await txt(page, '#f2Solved'), '16,24%');
   check('angsuran Rp 3.527.778', await txt(page, '#f2Angsuran'), 'Rp 3.527.778');
@@ -133,7 +133,7 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
   check('angsuran Rp 3.800.273', await txt(page, '#f2Angsuran'), 'Rp 3.800.273');
   check('presisi 3.800.273,21', await page.evaluate(() => Math.round(FinEngine.pmt(0.09, 120, 3e8) * 100) / 100), 3800273.21);
 
-  console.log('#8 F2 100jt / 9% p.a. / 36 / Anuitas → mode Margin Total');
+  console.log('#8 F2 100jt / 9% p.a. / 36 / Anuitas → mode Total Margin (%)');
   await f2Setup(page, '100.000.000', '36', 'pa', '9', 'anuitas');
   await page.click('#f2Mode .opt[data-mode="total"]');
   check('field total 14,48', await page.inputValue('#f2Total'), '14,48');
@@ -189,6 +189,8 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
   const body = (await page.evaluate(() => document.querySelector('header').textContent + ' ' + document.querySelector('main').textContent)).toLowerCase();
   for (const w of ['cicilan', 'bunga', 'pinjaman', 'irr', 'dsn-mui', 'fatwa', 'rate']) check('tidak memuat "' + w + '"', new RegExp('\\b' + w + '\\b').test(body), false);
 
+  check('tidak memuat "Margin Total"', /margin total/i.test(body), false);
+  check('tidak memuat label "BARU"', /\bBARU\b/.test(await page.evaluate(() => document.querySelector('main').textContent)), false);
   check('tidak ada error JavaScript', jsErrors.join('; '), '');
   await browser.close();
   console.log('\n' + passes + ' lolos, ' + failures + ' gagal');

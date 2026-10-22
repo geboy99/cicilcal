@@ -59,8 +59,6 @@
   .opt{min-height:44px;border:1px solid var(--slate-200);border-radius:var(--r-sm);padding:.6rem .7rem;font-size:.76rem;color:var(--slate-600);background:#fff;text-align:left;line-height:1.35;min-width:0}
   .opt b{display:block;font-size:.84rem;color:var(--navy-900)}
   .opt.active{border-color:var(--em-600);background:var(--em-50);box-shadow:inset 0 0 0 1px var(--em-600)}
-  .badge{display:inline-block;font-size:.66rem;font-weight:700;padding:.1rem .45rem;border-radius:999px;vertical-align:middle;margin-left:.35rem;letter-spacing:.02em;white-space:nowrap}
-  .b-new{background:var(--em-50);color:var(--em-700);border:1px solid #a7f3d0}
   .btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.55rem 1.1rem;border-radius:var(--r-sm);font-weight:600;font-size:.86rem;border:1px solid var(--slate-200);background:#fff;color:var(--navy-800)}
   .btn.em{background:var(--em-600);color:#fff;border-color:var(--em-600)}
   .btn.em:hover{background:var(--em-700)}
@@ -142,7 +140,6 @@
     .tabs{gap:.3rem;padding:.3rem;margin-bottom:1.1rem}
     .tab{font-size:.8rem;padding:.55rem .4rem}
     .tab .long{display:none}.tab .short{display:inline}
-    .tab .badge{display:none}
     .panel{padding:1.1rem}
     .fields{display:block}
     .input,.tier-row .input{font-size:16px}           /* cegah zoom otomatis iOS */
@@ -210,7 +207,7 @@
   <div class="tabs" role="tablist">
     <button type="button" class="tab active" role="tab" data-tab="1"><span class="long">Fitur 1: Hitung Margin dari Data Angsuran</span><span class="short">Margin</span></button>
     <button type="button" class="tab" role="tab" data-tab="2"><span class="long">Fitur 2: Angsuran &amp; Jadwal Angsuran</span><span class="short">Angsuran</span></button>
-    <button type="button" class="tab" role="tab" data-tab="3"><span class="long">Fitur 3: Step-Up / Berjenjang</span><span class="short">Step-Up</span><span class="badge b-new">BARU</span></button>
+    <button type="button" class="tab" role="tab" data-tab="3"><span class="long">Fitur 3: Step-Up / Berjenjang</span><span class="short">Step-Up</span></button>
   </div>
 
   <!-- ================= FITUR 1 ================= -->
@@ -252,11 +249,11 @@
           <div class="fg full"><span class="l">Input Parameter Margin</span>
             <div class="opt-grid" id="f2Mode">
               <button type="button" class="opt" data-mode="pa"><b>Margin p.a. (%)</b>Persentase per tahun</button>
-              <button type="button" class="opt" data-mode="total"><b>Margin Total (%)</b>Persentase dari pokok</button>
+              <button type="button" class="opt" data-mode="total"><b>Total Margin (%)</b>Persentase dari pokok</button>
             </div></div>
           <div class="fg full" id="f2PaWrap"><label class="l" for="f2Pa">Margin per Tahun (p.a.)</label>
             <div class="input-wrap"><input class="input bare" id="f2Pa" inputmode="decimal" autocomplete="off" data-pct><span class="adorn suf">% p.a.</span></div></div>
-          <div class="fg full" id="f2TotalWrap"><label class="l" for="f2Total">Margin Total dari Pokok</label>
+          <div class="fg full" id="f2TotalWrap"><label class="l" for="f2Total">Total Margin (% dari Pokok)</label>
             <div class="input-wrap"><input class="input bare" id="f2Total" inputmode="decimal" autocomplete="off" data-pct><span class="adorn suf">% Total</span></div></div>
           <div class="fg full"><span class="l">Skema Perhitungan</span>
             <div class="opt-grid" id="f2Skema">
@@ -276,7 +273,7 @@
   <section class="view" id="v3" data-title="Step-Up / Berjenjang">
     <div class="workspace-grid">
       <form class="panel" id="f3Form" novalidate>
-        <h2>Parameter Step-Up <span class="badge b-new">BARU</span></h2>
+        <h2>Parameter Step-Up</h2>
         <p class="desc">Untuk skema angsuran berjenjang dari lembaga pembiayaan syariah mana pun.</p>
         <div class="fields">
           <div class="fg"><label class="l" for="f3Pokok">Pokok Pembiayaan</label>
@@ -339,7 +336,7 @@ var FinEngine = (function () {
 
   /* Cari margin efektif p.a. r sehingga PMT(r, n, P)·n − P = totalPct·P. */
   function solveRateFromTotalMargin(P, n, totalPct) {
-    if (totalPct < 0) throw new FinError('Margin total tidak boleh negatif.');
+    if (totalPct < 0) throw new FinError('Total margin tidak boleh negatif.');
     return solveRateFromPayment(P, n, P * (1 + totalPct) / n);
   }
 
@@ -486,7 +483,7 @@ var FinEngine = (function () {
     };
   }
 
-  /* Fitur 2: sinkronisasi Margin p.a. ↔ Margin Total, mengikuti skema. */
+  /* Fitur 2: sinkronisasi Margin p.a. ↔ Total Margin (%), mengikuti skema. */
   function totalFromPa(skema, ratePa, n) {
     if (skema === 'flat') return ratePa * n / 12;
     return pmt(ratePa, n, 1) * n - 1;
@@ -663,7 +660,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     var ef2 = fmtPct(r.marginEfektifPa, 2), fl2 = fmtPct(r.marginFlatPa, 2);
     $('f1Out').innerHTML =
       '<div class="hero"><div class="hero-split">' +
-        '<div><div class="lbl">MARGIN EFEKTIF p.a. (ANUITAS) <span class="badge b-new">BARU</span></div>' +
+        '<div><div class="lbl">MARGIN EFEKTIF p.a. (ANUITAS)</div>' +
         '<div class="val tabular" id="f1Efektif">' + ef2 + '</div><div class="meta">Margin yang biasa disebut bank syariah</div></div>' +
         '<div><div class="lbl">MARGIN FLAT p.a.</div><div class="val small tabular" id="f1Flat">' + fl2 + '</div>' +
         '<div class="meta">Angka konversi, dihitung dari pokok awal</div></div>' +
@@ -672,7 +669,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
         'Jangan bandingkan margin flat dengan margin efektif — ' + fl2 + ' flat <b>tidak</b> lebih murah dari ' + ef2 + ' efektif.</div>' +
       '<div class="cards-3">' +
         '<div class="card em"><div class="lbl">Total Margin</div><div class="val em tabular" id="f1TotalMargin">' + fmtRp(r.totalMargin) + '</div><div class="s">Total pembayaran − pokok</div></div>' +
-        '<div class="card nv"><div class="lbl">Margin Total</div><div class="val tabular">' + fmtPct(r.marginTotalPct, 2) + '</div><div class="s">Terhadap pokok pembiayaan</div></div>' +
+        '<div class="card nv"><div class="lbl">Total Margin (%)</div><div class="val tabular">' + fmtPct(r.marginTotalPct, 2) + '</div><div class="s">Terhadap pokok pembiayaan</div></div>' +
         '<div class="card nv"><div class="lbl">Total Pembayaran</div><div class="val tabular" id="f1TotalBayar">' + fmtRp(r.totalBayar) + '</div><div class="s">Angsuran × tenor</div></div>' +
       '</div>' +
       '<div class="panel"><h2>Tabel Rincian Perhitungan</h2><p class="desc">Rincian pokok, total pembayaran, dan margin.</p>' +
@@ -682,10 +679,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
           '<tr><td>Pokok Pembiayaan</td><td>Harga − DP</td><td class="num">' + fmtRp(r.pokok) + '</td></tr>' +
           '<tr><td>Total Pembayaran</td><td>' + fmtRpExact(A) + ' × ' + n + '</td><td class="num">' + fmtRp(r.totalBayar) + '</td></tr>' +
           '<tr class="hl"><td>Total Margin</td><td>Total pembayaran − pokok</td><td class="num">' + fmtRp(r.totalMargin) + '</td></tr>' +
-          '<tr><td>Margin Total (%)</td><td>Margin ÷ pokok</td><td class="num">' + fmtPct(r.marginTotalPct, 4) + '</td></tr>' +
-          '<tr class="hl"><td>Margin Efektif p.a. <span class="badge b-new">BARU</span></td><td>Margin yang membuat rumus anuitas menghasilkan angsuran yang dimasukkan</td><td class="num" data-k="efektif">' + fmtPct(r.marginEfektifPa, 4) + '</td></tr>' +
-          '<tr><td>Margin Efektif per bulan <span class="badge b-new">BARU</span></td><td>Efektif p.a. ÷ 12</td><td class="num">' + fmtPct(r.marginEfektifPa / 12, 4) + '</td></tr>' +
-          '<tr><td>Margin Flat p.a.</td><td>Margin total ÷ tenor × 12</td><td class="num" data-k="flat">' + fmtPct(r.marginFlatPa, 4) + '</td></tr>' +
+          '<tr><td>Total Margin (%)</td><td>Total margin ÷ pokok</td><td class="num">' + fmtPct(r.marginTotalPct, 4) + '</td></tr>' +
+          '<tr class="hl"><td>Margin Efektif p.a.</td><td>Margin yang membuat rumus anuitas menghasilkan angsuran yang dimasukkan</td><td class="num" data-k="efektif">' + fmtPct(r.marginEfektifPa, 4) + '</td></tr>' +
+          '<tr><td>Margin Efektif per bulan</td><td>Efektif p.a. ÷ 12</td><td class="num">' + fmtPct(r.marginEfektifPa / 12, 4) + '</td></tr>' +
+          '<tr><td>Margin Flat p.a.</td><td>Total margin (%) ÷ tenor × 12</td><td class="num" data-k="flat">' + fmtPct(r.marginFlatPa, 4) + '</td></tr>' +
         '</tbody></table></div></div>';
   }
   $('f1Form').addEventListener('submit', function (e) { e.preventDefault(); f1Compute(); });
@@ -735,7 +732,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     if (!(P > 0)) errs.push('Pokok pembiayaan harus lebih dari 0.');
     if (!(n >= 1)) errs.push('Tenor harus bilangan bulat minimal 1 bulan.');
     var active = f2.mode === 'pa' ? f2.pa : f2.total;
-    if (!isFinite(active)) errs.push(f2.mode === 'pa' ? 'Margin p.a. belum diisi atau tidak valid.' : 'Margin total belum diisi atau tidak valid.');
+    if (!isFinite(active)) errs.push(f2.mode === 'pa' ? 'Margin p.a. belum diisi atau tidak valid.' : 'Total margin (%) belum diisi atau tidak valid.');
     else if (active < 0) errs.push('Margin tidak boleh negatif.');
     if (errs.length) { showAlert('f2Alert', errs); $('f2Out').innerHTML = '<div class="empty">Lengkapi isian untuk melihat hasil.</div>'; f2Last = null; return; }
     var res;
@@ -753,7 +750,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     var meta = 'Tetap ' + n + ' bulan · ' + (flat ? 'margin flat ' + fmtPct(res.marginFlatPa, 2) : 'margin efektif ' + fmtPct(res.marginEfektifPa, 2)) + ' p.a.';
     var meta2 = '';
     if (!flat && f2Last.mode === 'total')
-      meta2 = '<div class="meta2">Margin efektif <b id="f2Solved">' + fmtPct(res.marginEfektifPa, 2) + '</b> p.a. dicari agar margin total = ' + fmtPct(f2Last.totalInput, 2) + ' dari pokok.</div>';
+      meta2 = '<div class="meta2">Margin efektif <b id="f2Solved">' + fmtPct(res.marginEfektifPa, 2) + '</b> p.a. dicari agar total margin = ' + fmtPct(f2Last.totalInput, 2) + ' dari pokok.</div>';
     else if (flat)
       meta2 = '<div class="meta2">Setara margin efektif ' + fmtPct(res.marginEfektifPa, 2) + ' p.a. (Anuitas).</div>';
     var pct = res.totalMargin / res.pokok;
