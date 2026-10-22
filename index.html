@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinSyariah Kalkulator</title>
+<meta name="description" content="Kalkulator pembiayaan syariah: hitung margin efektif & flat dari data angsuran, jadwal angsuran Flat / Efektif (Anuitas), dan simulasi angsuran berjenjang (step-up).">
+<style>
+  :root{--navy-900:#0f172a;--navy-800:#1e293b;--navy-700:#334155;--slate-600:#475569;--slate-500:#64748b;--slate-400:#94a3b8;--slate-300:#cbd5e1;--slate-200:#e2e8f0;--slate-100:#f1f5f9;--slate-50:#f8fafc;--em-700:#047857;--em-600:#059669;--em-500:#10b981;--em-50:#ecfdf5;--amber-700:#b45309;--amber-600:#d97706;--amber-50:#fffbeb;--amber-200:#fde68a;--red-700:#b91c1c;--red-50:#fef2f2;--red-200:#fecaca;--r-lg:14px;--r-md:10px;--r-sm:8px}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--slate-50)}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--navy-900);line-height:1.5;-webkit-font-smoothing:antialiased}
+  button{font:inherit;cursor:pointer}
+  .tabular,.num{font-variant-numeric:tabular-nums}
+  [hidden]{display:none!important}
+
+  /* ---------- Header ---------- */
+  .topbar{background:var(--navy-900);color:#fff}
+  .topbar-inner{max-width:1200px;margin:0 auto;padding:.875rem 1.5rem;display:flex;justify-content:space-between;align-items:center;gap:1rem}
+  .brand{font-weight:700}
+  .topnav{display:flex;gap:.25rem;margin-left:auto}
+  .topnav button{background:transparent;border:none;color:var(--slate-300);font-size:.84rem;font-weight:600;padding:.45rem .7rem;border-radius:var(--r-sm);min-height:44px}
+  .topnav button.active,.topnav button:hover{color:#fff;background:rgba(255,255,255,.08)}
+  .print-btn{font-size:.8rem;font-weight:600;background:var(--em-600);color:#fff;border:none;padding:.45rem .85rem;border-radius:var(--r-sm);min-height:44px}
+  .print-header{display:none}
+
+  .container{max-width:1200px;margin:0 auto;padding:2rem 1.5rem 4rem}
+  h1{font-size:1.6rem;letter-spacing:-.02em;margin-bottom:.3rem}
+  .sub{color:var(--slate-600);font-size:.92rem;margin-bottom:1.5rem;max-width:70ch}
+
+  /* ---------- Tab ---------- */
+  .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;background:var(--slate-200);padding:.35rem;border-radius:var(--r-md);margin-bottom:1.75rem}
+  .tab{min-height:44px;padding:.65rem .9rem;border:none;border-radius:var(--r-sm);background:transparent;color:var(--navy-700);font-weight:600;font-size:.86rem;line-height:1.3}
+  .tab.active{background:var(--navy-900);color:#fff}
+  .tab .short{display:none}
+
+  /* ---------- Tata letak ---------- */
+  .workspace-grid{display:grid;grid-template-columns:380px 1fr;gap:1.75rem;align-items:start}
+  .workspace-grid>*{min-width:0}
+  .panel{background:#fff;border:1px solid var(--slate-200);border-radius:var(--r-lg);padding:1.5rem;box-shadow:0 1px 3px rgba(15,23,42,.05)}
+  .panel+.panel{margin-top:1.5rem}
+  .panel h2{font-size:1.02rem;margin-bottom:.2rem}
+  .desc{font-size:.8rem;color:var(--slate-500);margin-bottom:1.1rem}
+  .fields{display:block}
+  .fields>*{min-width:0}
+  .fg{margin-bottom:1rem}
+  label.l,.l{display:block;font-size:.83rem;font-weight:600;color:var(--navy-800);margin-bottom:.35rem}
+  .input-wrap{display:flex;align-items:stretch;border:1px solid var(--slate-200);border-radius:var(--r-sm);background:#fff;min-height:44px;overflow:hidden}
+  .input-wrap:focus-within{border-color:var(--em-600);box-shadow:0 0 0 3px rgba(5,150,105,.15)}
+  .input-wrap .adorn{display:flex;align-items:center;padding:0 .7rem;font-size:.85rem;font-weight:600;color:var(--slate-500);background:var(--slate-50);white-space:nowrap}
+  .input-wrap .adorn.pre{border-right:1px solid var(--slate-200)}
+  .input-wrap .adorn.suf{border-left:1px solid var(--slate-200)}
+  .input-wrap input{flex:1 1 auto;min-width:0;width:100%;border:none;outline:none;background:transparent}
+  .input{width:100%;min-width:0;min-height:44px;padding:.6rem .85rem;font-size:.95rem;font-weight:600;color:var(--navy-900)}
+  input.input:not(.bare){border:1px solid var(--slate-200);border-radius:var(--r-sm);background:#fff}
+  input.input:not(.bare):focus{outline:none;border-color:var(--em-600);box-shadow:0 0 0 3px rgba(5,150,105,.15)}
+  .hint{font-size:.75rem;color:var(--slate-500);margin-top:.3rem}
+  .opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+  .opt{min-height:44px;border:1px solid var(--slate-200);border-radius:var(--r-sm);padding:.6rem .7rem;font-size:.76rem;color:var(--slate-600);background:#fff;text-align:left;line-height:1.35;min-width:0}
+  .opt b{display:block;font-size:.84rem;color:var(--navy-900)}
+  .opt.active{border-color:var(--em-600);background:var(--em-50);box-shadow:inset 0 0 0 1px var(--em-600)}
+  .badge{display:inline-block;font-size:.66rem;font-weight:700;padding:.1rem .45rem;border-radius:999px;vertical-align:middle;margin-left:.35rem;letter-spacing:.02em;white-space:nowrap}
+  .b-new{background:var(--em-50);color:var(--em-700);border:1px solid #a7f3d0}
+  .btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.55rem 1.1rem;border-radius:var(--r-sm);font-weight:600;font-size:.86rem;border:1px solid var(--slate-200);background:#fff;color:var(--navy-800)}
+  .btn.em{background:var(--em-600);color:#fff;border-color:var(--em-600)}
+  .btn.em:hover{background:var(--em-700)}
+  .actions{display:grid;grid-template-columns:1fr 1.5fr;gap:.75rem;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--slate-100)}
+  .alert-box{background:var(--red-50);border:1px solid var(--red-200);color:var(--red-700);border-radius:var(--r-sm);padding:.7rem .9rem;font-size:.82rem;margin-top:1rem}
+  .alert-box ul{padding-left:1.1rem}
+  .alert-box b{display:block;margin-bottom:.15rem}
+
+  /* ---------- Hasil ---------- */
+  .hero{background:linear-gradient(135deg,var(--navy-900),var(--navy-800));color:#fff;border-radius:var(--r-lg);padding:1.5rem;border-left:5px solid var(--em-500);margin-bottom:1.25rem}
+  .hero .lbl{font-size:.78rem;color:var(--slate-400);letter-spacing:.02em}
+  .hero .val{font-size:2rem;font-weight:700;color:var(--em-500);letter-spacing:-.02em;line-height:1.2;margin:.15rem 0;overflow-wrap:anywhere}
+  .hero .meta{font-size:.82rem;color:var(--slate-200)}
+  .hero .meta2{font-size:.78rem;color:var(--slate-400);margin-top:.35rem}
+  .hero-split{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  .hero-split>*{min-width:0}
+  .hero-split .val.small{font-size:1.5rem;color:var(--slate-200)}
+
+  .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-bottom:1.5rem}
+  .cards-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
+  .card{background:#fff;border:1px solid var(--slate-200);border-radius:var(--r-md);padding:1rem 1.15rem;min-width:0}
+  .card.em{border-left:4px solid var(--em-600)}
+  .card.nv{border-left:4px solid var(--navy-900)}
+  .card .lbl{font-size:.78rem;color:var(--slate-500)}
+  .card .val{font-size:1.25rem;font-weight:700;overflow-wrap:anywhere}
+  .card .val.em{color:var(--em-600)}
+  .card .s{font-size:.74rem;color:var(--slate-500)}
+  .note{background:var(--amber-50);border:1px solid var(--amber-200);border-radius:var(--r-sm);padding:.75rem .9rem;font-size:.82rem;color:#78350f;margin-bottom:1.25rem}
+  .note.green{background:var(--em-50);border-color:#a7f3d0;color:#065f46}
+  .empty{color:var(--slate-500);font-size:.85rem;text-align:center;padding:2.5rem 1rem;border:1px dashed var(--slate-300);border-radius:var(--r-lg);background:#fff}
+
+  .toggle{display:inline-flex;align-items:center;gap:.5rem;font-size:.8rem;font-weight:500;color:var(--slate-600);margin:0 0 .75rem;min-height:44px;cursor:pointer}
+  .toggle input{width:18px;height:18px;accent-color:var(--em-600)}
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--slate-100);border-radius:var(--r-sm)}
+  .swipe{display:none;font-size:.72rem;color:var(--slate-400);margin-bottom:.35rem}
+  table{width:100%;border-collapse:collapse;font-size:.83rem}
+  th,td{padding:.6rem .8rem;border-bottom:1px solid var(--slate-100);white-space:nowrap}
+  thead th{text-align:left;background:var(--slate-50);color:var(--slate-600);font-size:.75rem;font-weight:600;border-bottom:1px solid var(--slate-200)}
+  td.num,th.num{text-align:right;font-weight:600}
+  .sticky th:first-child,.sticky td:first-child{position:sticky;left:0;background:#fff;z-index:1;box-shadow:1px 0 0 var(--slate-100)}
+  .sticky thead th:first-child{background:var(--slate-50)}
+  .sticky tfoot td:first-child{background:var(--slate-100)}
+  tr.hl td{background:var(--em-50);color:var(--em-700);font-weight:700}
+  tr.tier td{background:var(--amber-50)!important;font-weight:700}
+  tfoot td{background:var(--slate-100);font-weight:700;border-top:2px solid var(--slate-200)}
+  .wrap td{white-space:normal}
+  .wrap td.num{white-space:nowrap}
+  .up{color:var(--amber-700)}
+  .footnote{font-size:.75rem;color:var(--slate-500);margin-top:.75rem}
+
+  /* ---------- Jenjang (Fitur 3) ---------- */
+  .tier-head,.tier-row{display:grid;grid-template-columns:1fr 1fr 1fr 44px;gap:.5rem;align-items:center}
+  .tier-head>*,.tier-row>*{min-width:0}
+  .tier-head{font-size:.72rem;color:var(--slate-500);font-weight:600;margin-bottom:.3rem}
+  .tier-row{margin-bottom:.5rem}
+  .tier-row .input{padding:.5rem .6rem;font-size:.9rem}
+  .x{color:var(--slate-400);font-weight:700;font-size:1.1rem;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:var(--r-sm)}
+  .x:hover:not(:disabled){color:var(--red-700);border-color:var(--red-200);background:var(--red-50)}
+  .x:disabled{opacity:.35;cursor:not-allowed}
+  .addtier{font-size:.82rem;color:var(--em-700);font-weight:600;margin-top:.25rem;min-height:44px;display:inline-flex;align-items:center;background:none;border:none;padding:0 .25rem}
+
+  .view{display:none}.view.active{display:block}
+  .site-foot{margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--slate-200);font-size:.75rem;color:var(--slate-500)}
+
+  /* ---------- Tablet: 700–1023px ---------- */
+  @media (max-width:1023px){
+    .container{padding:1.5rem 1.25rem 3rem}
+    .workspace-grid{grid-template-columns:1fr;gap:1.25rem}
+    .fields{display:grid;grid-template-columns:1fr 1fr;column-gap:1rem}
+    .fields .full{grid-column:1/-1}
+  }
+  /* ---------- HP: < 700px ---------- */
+  @media (max-width:699px){
+    .topbar-inner{padding:.75rem 1rem}
+    .topnav,.print-btn{display:none}
+    .container{padding:1.1rem .85rem 2.5rem}
+    h1{font-size:1.25rem}
+    .sub{font-size:.84rem;margin-bottom:1rem}
+    .tabs{gap:.3rem;padding:.3rem;margin-bottom:1.1rem}
+    .tab{font-size:.8rem;padding:.55rem .4rem}
+    .tab .long{display:none}.tab .short{display:inline}
+    .tab .badge{display:none}
+    .panel{padding:1.1rem}
+    .fields{display:block}
+    .input,.tier-row .input{font-size:16px}           /* cegah zoom otomatis iOS */
+    .hero{padding:1.1rem}
+    .hero .val{font-size:1.65rem}
+    .hero-split{grid-template-columns:1fr;gap:.75rem}
+    .hero-split>div+div{padding-top:.75rem;border-top:1px solid rgba(255,255,255,.12)}
+    .cards,.cards-3{grid-template-columns:1fr;gap:.6rem;margin-bottom:1.1rem}
+    .card{display:flex;justify-content:space-between;align-items:baseline;gap:.75rem;padding:.75rem .9rem}
+    .card .s{display:none}
+    .card .val{font-size:1.05rem;text-align:right}
+    table{font-size:.78rem}
+    th,td{padding:.5rem .6rem}
+    .swipe{display:block}
+  }
+
+  /* ---------- Cetak / PDF ---------- */
+  @media print{
+    @page{margin:12mm}
+    html,body{background:#fff}
+    .topbar,.tabs,.sub,h1,.actions,.toggle,.swipe,.addtier,.x,.site-foot,.no-print{display:none!important}
+    .print-header{display:block;border-bottom:2px solid var(--navy-900);padding-bottom:.5rem;margin-bottom:1rem}
+    .print-header .ph-title{font-size:1.2rem;font-weight:700}
+    .print-header .ph-meta{font-size:.8rem;color:var(--slate-600)}
+    .container{max-width:none;padding:0}
+    .workspace-grid{grid-template-columns:1fr;gap:1rem}
+    .fields{display:grid;grid-template-columns:1fr 1fr;column-gap:1rem}
+    .fields .full{grid-column:1/-1}
+    .panel,.card,.hero{box-shadow:none!important;break-inside:avoid}
+    .panel.schedule{break-inside:auto}
+    .hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .note,tr.hl td,tr.tier td,thead th,tfoot td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .scroll{overflow:visible!important;border:none}
+    .sticky th:first-child,.sticky td:first-child{position:static;box-shadow:none}
+    thead{display:table-header-group}
+    tr{break-inside:avoid}
+    table{font-size:.72rem}
+    th,td{padding:.3rem .45rem}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <span class="brand">FinSyariah Kalkulator</span>
+    <nav class="topnav" aria-label="Navigasi fitur">
+      <button type="button" data-tab="1" class="active">Margin</button>
+      <button type="button" data-tab="2">Angsuran</button>
+      <button type="button" data-tab="3">Step-Up</button>
+    </nav>
+    <button type="button" class="print-btn" id="printBtn">Cetak / Simpan PDF</button>
+  </div>
+</header>
+
+<main class="container">
+  <div class="print-header">
+    <div class="ph-title">FinSyariah Kalkulator — <span id="phFitur">Hitung Margin dari Data Angsuran</span></div>
+    <div class="ph-meta">Dicetak <span id="phDate"></span>. Hasil simulasi; angka resmi mengikuti akad dan kebijakan lembaga pembiayaan.</div>
+  </div>
+
+  <h1>Kalkulator Pembiayaan Syariah &amp; Finansial</h1>
+  <p class="sub">Hitung margin efektif dan flat dari data angsuran, simulasikan angsuran dengan skema Flat atau Efektif (Anuitas), dan simulasikan angsuran berjenjang (step-up).</p>
+
+  <div class="tabs" role="tablist">
+    <button type="button" class="tab active" role="tab" data-tab="1"><span class="long">Fitur 1: Hitung Margin dari Data Angsuran</span><span class="short">Margin</span></button>
+    <button type="button" class="tab" role="tab" data-tab="2"><span class="long">Fitur 2: Angsuran &amp; Jadwal Angsuran</span><span class="short">Angsuran</span></button>
+    <button type="button" class="tab" role="tab" data-tab="3"><span class="long">Fitur 3: Step-Up / Berjenjang</span><span class="short">Step-Up</span><span class="badge b-new">BARU</span></button>
+  </div>
+
+  <!-- ================= FITUR 1 ================= -->
+  <section class="view active" id="v1" data-title="Hitung Margin dari Data Angsuran">
+    <div class="workspace-grid">
+      <form class="panel" id="f1Form" novalidate>
+        <h2>Parameter Data Angsuran</h2>
+        <p class="desc">Masukkan Harga/Plafon, DP, Angsuran per Bulan, dan Tenor.</p>
+        <div class="fields">
+          <div class="fg"><label class="l" for="f1Harga">Harga Awal / Plafon Pembiayaan</label>
+            <div class="input-wrap"><span class="adorn pre">Rp</span><input class="input bare" id="f1Harga" inputmode="numeric" autocomplete="off" data-rupiah></div></div>
+          <div class="fg"><label class="l" for="f1Dp">Uang Muka / DP</label>
+            <div class="input-wrap"><span class="adorn pre">Rp</span><input class="input bare" id="f1Dp" inputmode="numeric" autocomplete="off" data-rupiah></div></div>
+          <div class="fg"><label class="l" for="f1Angsuran">Angsuran per Bulan</label>
+            <div class="input-wrap"><span class="adorn pre">Rp</span><input class="input bare" id="f1Angsuran" inputmode="decimal" autocomplete="off" data-rupiah data-decimal></div>
+            <div class="hint">Menerima angka desimal (sen), contoh 3.800.273,21.</div></div>
+          <div class="fg"><label class="l" for="f1Tenor">Tenor</label>
+            <div class="input-wrap"><input class="input bare" id="f1Tenor" inputmode="numeric" autocomplete="off" data-int><span class="adorn suf">Bulan</span></div></div>
+        </div>
+        <div class="alert-box" id="f1Alert" role="alert" hidden></div>
+        <div class="actions"><button type="button" class="btn" id="f1Reset">Reset</button><button type="submit" class="btn em">Hitung</button></div>
+      </form>
+
+      <div id="f1Out"></div>
+    </div>
+  </section>
+
+  <!-- ================= FITUR 2 ================= -->
+  <section class="view" id="v2" data-title="Angsuran &amp; Jadwal Angsuran">
+    <div class="workspace-grid">
+      <form class="panel" id="f2Form" novalidate>
+        <h2>Parameter Angsuran &amp; Skema</h2>
+        <p class="desc">Pilih cara memasukkan margin dan skema perhitungan. Klik skema untuk membandingkan.</p>
+        <div class="fields">
+          <div class="fg"><label class="l" for="f2Pokok">Pokok Pembiayaan</label>
+            <div class="input-wrap"><span class="adorn pre">Rp</span><input class="input bare" id="f2Pokok" inputmode="numeric" autocomplete="off" data-rupiah></div></div>
+          <div class="fg"><label class="l" for="f2Tenor">Tenor</label>
+            <div class="input-wrap"><input class="input bare" id="f2Tenor" inputmode="numeric" autocomplete="off" data-int><span class="adorn suf">Bulan</span></div></div>
+          <div class="fg full"><span class="l">Input Parameter Margin</span>
+            <div class="opt-grid" id="f2Mode">
+              <button type="button" class="opt" data-mode="pa"><b>Margin p.a. (%)</b>Persentase per tahun</button>
+              <button type="button" class="opt" data-mode="total"><b>Margin Total (%)</b>Persentase dari pokok</button>
+            </div></div>
+          <div class="fg full" id="f2PaWrap"><label class="l" for="f2Pa">Margin per Tahun (p.a.)</label>
+            <div class="input-wrap"><input class="input bare" id="f2Pa" inputmode="decimal" autocomplete="off" data-pct><span class="adorn suf">% p.a.</span></div></div>
+          <div class="fg full" id="f2TotalWrap"><label class="l" for="f2Total">Margin Total dari Pokok</label>
+            <div class="input-wrap"><input class="input bare" id="f2Total" inputmode="decimal" autocomplete="off" data-pct><span class="adorn suf">% Total</span></div></div>
+          <div class="fg full"><span class="l">Skema Perhitungan</span>
+            <div class="opt-grid" id="f2Skema">
+              <button type="button" class="opt" data-skema="flat"><b>Flat</b>Margin dari pokok awal</button>
+              <button type="button" class="opt" data-skema="anuitas"><b>Efektif (Anuitas)</b>Margin dari sisa pokok</button>
+            </div></div>
+        </div>
+        <div class="alert-box" id="f2Alert" role="alert" hidden></div>
+        <div class="actions"><button type="button" class="btn" id="f2Reset">Reset</button><button type="submit" class="btn em">Hitung &amp; Buat Tabel</button></div>
+      </form>
+
+      <div id="f2Out"></div>
+    </div>
+  </section>
+
+  <!-- ================= FITUR 3 ================= -->
+  <section class="view" id="v3" data-title="Step-Up / Berjenjang">
+    <div class="workspace-grid">
+      <form class="panel" id="f3Form" novalidate>
+        <h2>Parameter Step-Up <span class="badge b-new">BARU</span></h2>
+        <p class="desc">Untuk skema angsuran berjenjang dari lembaga pembiayaan syariah mana pun.</p>
+        <div class="fields">
+          <div class="fg"><label class="l" for="f3Pokok">Pokok Pembiayaan</label>
+            <div class="input-wrap"><span class="adorn pre">Rp</span><input class="input bare" id="f3Pokok" inputmode="numeric" autocomplete="off" data-rupiah></div></div>
+          <div class="fg"><label class="l" for="f3Tenor">Tenor Total</label>
+            <div class="input-wrap"><input class="input bare" id="f3Tenor" inputmode="numeric" autocomplete="off" data-int><span class="adorn suf">Bulan</span></div>
+            <div class="hint" id="f3TenorHint"></div></div>
+          <div class="fg full">
+            <span class="l">Jenjang Margin Efektif</span>
+            <div class="tier-head"><span>Dari bulan</span><span>Sampai bulan</span><span>Margin p.a. (%)</span><span></span></div>
+            <div id="f3Tiers"></div>
+            <button type="button" class="addtier" id="f3Add">+ Tambah jenjang</button>
+            <div class="hint">Angsuran dihitung dengan metode anuitas di awal tiap jenjang dari sisa pokok. Jenjang harus berurutan dan menutup seluruh tenor.</div>
+          </div>
+          <div class="fg full"><label class="l" for="f3Cmp">Pembanding (opsional)</label>
+            <div class="input-wrap"><span class="adorn pre">Margin tetap</span><input class="input bare" id="f3Cmp" inputmode="decimal" autocomplete="off" data-pct placeholder="kosongkan jika tidak ada"><span class="adorn suf">% p.a.</span></div>
+            <div class="hint">Isi margin tetap (single price) dari lembaga yang sama untuk dibandingkan.</div></div>
+        </div>
+        <div class="alert-box" id="f3Alert" role="alert" hidden></div>
+        <div class="actions"><button type="button" class="btn" id="f3Reset">Reset</button><button type="submit" class="btn em">Hitung &amp; Buat Tabel</button></div>
+      </form>
+
+      <div id="f3Out"></div>
+    </div>
+  </section>
+
+  <p class="site-foot">Hasil kalkulator ini adalah simulasi. Angsuran, margin, dan ketentuan pelunasan yang berlaku mengikuti akad dan kebijakan masing-masing lembaga pembiayaan.</p>
+</main>
+
+<!-- ============ Mesin hitung (fungsi murni, tanpa DOM) ============ -->
+<script id="fin-engine">
+var FinEngine = (function () {
+  'use strict';
+
+  function FinError(msg) { this.name = 'FinError'; this.message = msg; }
+  FinError.prototype = Object.create(Error.prototype);
+
+  /* Angsuran anuitas. ratePa = margin efektif p.a. (desimal). */
+  function pmt(ratePa, n, P) {
+    var i = ratePa / 12;
+    if (i === 0) return P / n;
+    var f = Math.pow(1 + i, n);
+    return P * i * f / (f - 1);
+  }
+
+  /* Cari margin efektif p.a. r sehingga PMT(r, n, P) = A. Bisection, fungsi monoton naik. */
+  function solveRateFromPayment(P, n, A) {
+    var total = A * n;
+    var tol = 1e-9 * Math.max(1, P);
+    if (total < P - tol) throw new FinError('Total angsuran (' + n + ' × angsuran) lebih kecil dari pokok pembiayaan. Periksa kembali angsuran dan tenor.');
+    if (Math.abs(total - P) <= tol) return 0;
+    var lo = 0, hi = 1;
+    while (pmt(hi, n, P) < A && hi < 1024) hi *= 2;   // margin di atas 100% p.a.: perluas batas atas
+    for (var k = 0; k < 200; k++) {
+      var mid = (lo + hi) / 2;
+      if (pmt(mid, n, P) < A) lo = mid; else hi = mid;
+    }
+    return (lo + hi) / 2;
+  }
+
+  /* Cari margin efektif p.a. r sehingga PMT(r, n, P)·n − P = totalPct·P. */
+  function solveRateFromTotalMargin(P, n, totalPct) {
+    if (totalPct < 0) throw new FinError('Margin total tidak boleh negatif.');
+    return solveRateFromPayment(P, n, P * (1 + totalPct) / n);
+  }
+
+  /* Margin per periode m sehingga Σ CF_k/(1+m)^k = 0, CF_0 negatif dan CF_k ≥ 0. */
+  function irr(cashflows) {
+    function npv(m) {
+      var s = 0, d = 1;
+      for (var k = 0; k < cashflows.length; k++) { s += cashflows[k] / d; d *= 1 + m; }
+      return s;
+    }
+    if (npv(0) <= 0) return 0;
+    var lo = 0, hi = 1;
+    while (npv(hi) > 0 && hi < 1024) hi *= 2;
+    for (var k = 0; k < 200; k++) {
+      var mid = (lo + hi) / 2;
+      if (npv(mid) > 0) lo = mid; else hi = mid;
+    }
+    return (lo + hi) / 2;
+  }
+
+  /* Lengkapi baris dengan sisa pokok & sisa kewajiban, lalu bentuk objek hasil seragam. */
+  function finalize(P, rows, extra) {
+    var totalBayar = 0, totalMargin = 0, sisaPokok = P, i;
+    for (i = 0; i < rows.length; i++) { totalBayar += rows[i].angsuran; totalMargin += rows[i].margin; }
+    var dibayar = 0, tol = 1e-6 * Math.max(1, P);
+    for (i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      sisaPokok -= r.pokok;
+      dibayar += r.angsuran;
+      r.sisaPokok = Math.abs(sisaPokok) < tol ? 0 : sisaPokok;
+      var sk = totalBayar - dibayar;
+      r.sisaKewajiban = Math.abs(sk) < tol ? 0 : sk;
+    }
+    var res = {
+      pokok: P,
+      tenor: rows.length,
+      angsuranAwal: rows.length ? rows[0].angsuran : 0,
+      totalBayar: totalBayar,
+      totalMargin: totalMargin,
+      marginEfektifPa: null,
+      rows: rows
+    };
+    for (var k in extra) res[k] = extra[k];
+    return res;
+  }
+
+  function checkBasic(P, n) {
+    if (!(P > 0)) throw new FinError('Pokok pembiayaan harus lebih dari 0.');
+    if (!(n >= 1) || Math.floor(n) !== n) throw new FinError('Tenor harus bilangan bulat minimal 1 bulan.');
+  }
+
+  /* Skema Flat: margin bulanan dari pokok awal. */
+  function scheduleFlat(P, n, ratePa) {
+    checkBasic(P, n);
+    if (!(ratePa >= 0)) throw new FinError('Margin tidak boleh negatif.');
+    var pokok = P / n, margin = P * ratePa / 12, A = pokok + margin, rows = [];
+    for (var k = 1; k <= n; k++) rows.push({ bulan: k, jenjang: 1, marginPa: ratePa, pokok: pokok, margin: margin, angsuran: A });
+    var res = finalize(P, rows, { skema: 'flat', marginFlatPa: ratePa });
+    res.marginEfektifPa = solveRateFromPayment(P, n, A);
+    return res;
+  }
+
+  /* Skema Efektif (Anuitas): angsuran tetap, margin dari sisa pokok. */
+  function scheduleAnnuity(P, n, ratePa) {
+    checkBasic(P, n);
+    if (!(ratePa >= 0)) throw new FinError('Margin tidak boleh negatif.');
+    var i = ratePa / 12, A = pmt(ratePa, n, P), sisa = P, rows = [];
+    for (var k = 1; k <= n; k++) {
+      var margin = sisa * i, pokok = A - margin;
+      sisa -= pokok;
+      rows.push({ bulan: k, jenjang: 1, marginPa: ratePa, pokok: pokok, margin: margin, angsuran: A });
+    }
+    var res = finalize(P, rows, { skema: 'anuitas' });
+    res.marginEfektifPa = ratePa;
+    res.marginFlatPa = (A * n - P) / P / (n / 12);
+    return res;
+  }
+
+  /* Validasi jenjang: [{dari, sampai, ratePa}] → daftar pesan error (kosong = valid). */
+  function validateTiers(n, tiers) {
+    var errs = [];
+    if (!tiers.length) return ['Tambahkan minimal satu jenjang.'];
+    tiers.forEach(function (t, idx) {
+      var no = idx + 1;
+      if (!isFinite(t.dari) || !isFinite(t.sampai) || Math.floor(t.dari) !== t.dari || Math.floor(t.sampai) !== t.sampai)
+        errs.push('Jenjang ' + no + ': bulan "dari" dan "sampai" harus bilangan bulat.');
+      else if (t.dari > t.sampai) errs.push('Jenjang ' + no + ': bulan "dari" (' + t.dari + ') lebih besar dari "sampai" (' + t.sampai + ').');
+      if (!isFinite(t.ratePa)) errs.push('Jenjang ' + no + ': margin p.a. belum diisi.');
+      else if (t.ratePa < 0) errs.push('Jenjang ' + no + ': margin p.a. tidak boleh negatif.');
+    });
+    if (errs.length) return errs;
+    if (tiers[0].dari !== 1) errs.push('Jenjang 1 harus mulai dari bulan 1 (sekarang bulan ' + tiers[0].dari + ').');
+    for (var k = 1; k < tiers.length; k++) {
+      var prev = tiers[k - 1], cur = tiers[k], expect = prev.sampai + 1;
+      if (cur.dari > expect) {
+        var a = expect, b = cur.dari - 1;
+        errs.push('Ada celah di bulan ' + (a === b ? a : a + '–' + b) + ' (antara jenjang ' + k + ' dan ' + (k + 1) + ').');
+      } else if (cur.dari < expect) {
+        var c = cur.dari, d = Math.min(prev.sampai, cur.sampai);
+        errs.push('Jenjang ' + (k + 1) + ' tumpang tindih dengan jenjang ' + k + ' di bulan ' + (c === d ? c : c + '–' + d) + '.');
+      }
+    }
+    var last = tiers[tiers.length - 1];
+    if (last.sampai < n) errs.push('Jenjang tidak menutup tenor: jenjang terakhir berakhir di bulan ' + last.sampai + ', tenor ' + n + ' bulan (bulan ' + (last.sampai + 1) + '–' + n + ' belum tercakup).');
+    else if (last.sampai > n) errs.push('Jenjang terakhir berakhir di bulan ' + last.sampai + ', melebihi tenor ' + n + ' bulan.');
+    return errs;
+  }
+
+  /* Step-up: di awal jenjang k, A_k = PMT(r_k, n − dari_k + 1, sisa pokok saat itu). */
+  function scheduleStepUp(P, n, tiers) {
+    checkBasic(P, n);
+    var errs = validateTiers(n, tiers);
+    if (errs.length) { var e = new FinError(errs[0]); e.list = errs; throw e; }
+    var rows = [], sisa = P, summary = [];
+    tiers.forEach(function (t, idx) {
+      var A = pmt(t.ratePa, n - t.dari + 1, sisa), i = t.ratePa / 12;
+      summary.push({ jenjang: idx + 1, dari: t.dari, sampai: t.sampai, marginPa: t.ratePa, angsuran: A });
+      for (var k = t.dari; k <= t.sampai; k++) {
+        var margin = sisa * i, pokok = A - margin;
+        sisa -= pokok;
+        rows.push({ bulan: k, jenjang: idx + 1, marginPa: t.ratePa, pokok: pokok, margin: margin, angsuran: A, awalJenjang: k === t.dari });
+      }
+    });
+    var res = finalize(P, rows, { skema: 'stepup', tiers: summary });
+    var cfs = [-P].concat(rows.map(function (r) { return r.angsuran; }));
+    res.marginEfektifPa = irr(cfs) * 12;
+    return res;
+  }
+
+  /* Fitur 1: analisis data angsuran. */
+  function analyzePayment(harga, dp, A, n) {
+    if (!(harga > 0)) throw new FinError('Harga awal / plafon pembiayaan harus lebih dari 0.');
+    if (!(dp >= 0)) throw new FinError('Uang muka tidak boleh negatif.');
+    if (dp >= harga) throw new FinError('Uang muka harus lebih kecil dari harga awal / plafon.');
+    if (!(A > 0)) throw new FinError('Angsuran per bulan harus lebih dari 0.');
+    if (!(n >= 1) || Math.floor(n) !== n) throw new FinError('Tenor harus bilangan bulat minimal 1 bulan.');
+    var P = harga - dp, totalBayar = A * n, totalMargin = totalBayar - P;
+    var efektif = solveRateFromPayment(P, n, A);
+    return {
+      pokok: P, angsuran: A, tenor: n, totalBayar: totalBayar, totalMargin: totalMargin,
+      marginTotalPct: totalMargin / P,
+      marginEfektifPa: efektif,
+      marginFlatPa: totalMargin / P / (n / 12)
+    };
+  }
+
+  /* Fitur 2: sinkronisasi Margin p.a. ↔ Margin Total, mengikuti skema. */
+  function totalFromPa(skema, ratePa, n) {
+    if (skema === 'flat') return ratePa * n / 12;
+    return pmt(ratePa, n, 1) * n - 1;
+  }
+  function paFromTotal(skema, totalPct, n) {
+    if (skema === 'flat') return totalPct / (n / 12);
+    return solveRateFromTotalMargin(1, n, totalPct);
+  }
+
+  return {
+    FinError: FinError,
+    pmt: pmt, solveRateFromPayment: solveRateFromPayment, solveRateFromTotalMargin: solveRateFromTotalMargin, irr: irr,
+    scheduleFlat: scheduleFlat, scheduleAnnuity: scheduleAnnuity, scheduleStepUp: scheduleStepUp, validateTiers: validateTiers,
+    analyzePayment: analyzePayment, totalFromPa: totalFromPa, paFromTotal: paFromTotal
+  };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
+</script>
+
+<!-- ============ Antarmuka ============ -->
+<script>
+(function () {
+  'use strict';
+  var E = FinEngine;
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- Format & parse (format Indonesia: titik = ribuan, koma = desimal) ---------- */
+  function groupThousands(intStr) { return intStr.replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+  function fmtRp(x) {
+    var v = Math.round(x);
+    if (Object.is(v, -0)) v = 0;
+    return (v < 0 ? '−' : '') + 'Rp ' + groupThousands(String(Math.abs(v)));
+  }
+  function fmtRpExact(x) { // tampilkan sen bila ada (untuk keterangan rumus)
+    var c = Math.round(x * 100), neg = c < 0; c = Math.abs(c);
+    var s = 'Rp ' + groupThousands(String(Math.floor(c / 100)));
+    if (c % 100) s += ',' + String(c % 100).padStart(2, '0');
+    return (neg ? '−' : '') + s;
+  }
+  function fmtNum(x, d) {
+    var s = Math.abs(x).toFixed(d).split('.');
+    var out = groupThousands(s[0]) + (s[1] ? ',' + s[1] : '');
+    return (x < 0 && Number(s.join('.')) !== 0 ? '−' : '') + out;
+  }
+  function fmtPct(frac, d) { return fmtNum(frac * 100, d) + '%'; }
+  function fmtPctInput(frac) { // nilai field persen: maks 2 desimal, tanpa nol berlebih
+    var s = (Math.round(frac * 10000) / 100).toFixed(2).replace(/\.?0+$/, '');
+    return s.replace('.', ',');
+  }
+
+  function parseRupiah(str) {
+    var s = String(str || '').replace(/[^\d,]/g, '');      // titik (ribuan) & simbol dibuang, koma dipertahankan
+    if (!s) return NaN;
+    var parts = s.split(',');
+    var num = parts[0] + (parts.length > 1 ? '.' + parts.slice(1).join('') : '');
+    return parseFloat(num);
+  }
+  function parsePercent(str) {
+    var s = String(str || '').trim().replace(/[%\s]/g, '');
+    if (!s) return NaN;
+    if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    return /^-?\d*\.?\d+$|^-?\d+\.$/.test(s) ? parseFloat(s) / 100 : NaN;
+  }
+  function parseIntStrict(str) {
+    var s = String(str || '').replace(/[.\s]/g, '');
+    return /^\d+$/.test(s) ? parseInt(s, 10) : NaN;
+  }
+
+  /* Format rupiah saat mengetik, mempertahankan koma desimal (maks 2 digit) dan posisi kursor. */
+  function formatRupiahText(raw, allowDecimal) {
+    var s = raw.replace(allowDecimal ? /[^\d,]/g : /[^\d]/g, '');
+    var ci = s.indexOf(',');
+    var intPart = ci >= 0 ? s.slice(0, ci) : s;
+    var dec = ci >= 0 ? s.slice(ci + 1).replace(/,/g, '').slice(0, 2) : null;
+    intPart = intPart.replace(/^0+(?=\d)/, '');
+    if (intPart === '' && dec !== null) intPart = '0';
+    return groupThousands(intPart) + (dec !== null ? ',' + dec : '');
+  }
+  function attachRupiah(el) {
+    var allowDecimal = el.hasAttribute('data-decimal');
+    el.addEventListener('input', function () {
+      var pos = el.selectionStart == null ? el.value.length : el.selectionStart;
+      var re = allowDecimal ? /[\d,]/ : /\d/;
+      var sig = 0;
+      for (var i = 0; i < pos; i++) if (re.test(el.value[i])) sig++;
+      var out = formatRupiahText(el.value, allowDecimal);
+      if (out === el.value) return;
+      el.value = out;
+      var p = 0, seen = 0;
+      while (p < out.length && seen < sig) { if (re.test(out[p])) seen++; p++; }
+      try { el.setSelectionRange(p, p); } catch (e) { /* input tanpa seleksi */ }
+    });
+  }
+  function setRupiah(el, x) {
+    el.value = formatRupiahText(fmtRpExact(x).replace('Rp ', ''), el.hasAttribute('data-decimal'));
+  }
+  document.querySelectorAll('[data-rupiah]').forEach(attachRupiah);
+  document.querySelectorAll('[data-int]').forEach(function (el) {
+    el.addEventListener('input', function () { var v = el.value.replace(/\D/g, ''); if (v !== el.value) el.value = v; });
+  });
+  document.querySelectorAll('[data-pct]').forEach(function (el) {
+    el.addEventListener('input', function () { var v = el.value.replace(/[^\d,.]/g, ''); if (v !== el.value) el.value = v; });
+  });
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function showAlert(id, msgs) {
+    var box = $(id);
+    if (!msgs || !msgs.length) { box.hidden = true; box.innerHTML = ''; return; }
+    box.innerHTML = msgs.length === 1 ? esc(msgs[0])
+      : '<b>Periksa kembali isian:</b><ul>' + msgs.map(function (m) { return '<li>' + esc(m) + '</li>'; }).join('') + '</ul>';
+    box.hidden = false;
+  }
+  function errMsgs(err) {
+    if (err instanceof E.FinError) return err.list || [err.message];
+    throw err;
+  }
+
+  /* ---------- Tab ---------- */
+  var currentTab = 1;
+  function showTab(n) {
+    currentTab = n;
+    document.querySelectorAll('.view').forEach(function (v, i) { v.classList.toggle('active', i === n - 1); });
+    document.querySelectorAll('[data-tab]').forEach(function (t) { t.classList.toggle('active', +t.getAttribute('data-tab') === n); });
+    $('phFitur').innerHTML = $('v' + n).getAttribute('data-title');
+  }
+  document.querySelectorAll('[data-tab]').forEach(function (b) {
+    b.addEventListener('click', function () { showTab(+b.getAttribute('data-tab')); });
+  });
+  $('printBtn').addEventListener('click', function () { window.print(); });
+  window.addEventListener('beforeprint', function () {
+    $('phDate').textContent = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  });
+
+  /* ---------- Komponen tabel jadwal ---------- */
+  function scheduleTable(res, opts) {
+    var showJenjang = opts.jenjang, showKewajiban = opts.kewajiban, showSisaPokok = opts.sisaPokok;
+    var h = '<div class="swipe">Geser tabel ke samping →</div><div class="scroll"><table class="sticky"><thead><tr><th>Bulan</th>';
+    if (showJenjang) h += '<th>Jenjang</th>';
+    h += '<th class="num">Angsuran Pokok</th><th class="num">Angsuran Margin</th><th class="num">Total Angsuran</th>';
+    if (showKewajiban) h += '<th class="num">Sisa Kewajiban</th>';
+    if (showSisaPokok) h += '<th class="num">Sisa Pokok Pembiayaan</th>';
+    h += '</tr></thead><tbody>';
+    var sumP = 0, sumM = 0, sumA = 0;
+    res.rows.forEach(function (r) {
+      sumP += r.pokok; sumM += r.margin; sumA += r.angsuran;
+      var tier = showJenjang && r.awalJenjang && r.jenjang > 1;
+      h += '<tr' + (tier ? ' class="tier"' : '') + '><td>' + r.bulan + '</td>';
+      if (showJenjang) h += '<td>' + r.jenjang + ' · ' + fmtPct(r.marginPa, 2) + '</td>';
+      h += '<td class="num">' + fmtRp(r.pokok) + '</td><td class="num">' + fmtRp(r.margin) + '</td><td class="num">' + fmtRp(r.angsuran) + '</td>';
+      if (showKewajiban) h += '<td class="num">' + fmtRp(r.sisaKewajiban) + '</td>';
+      if (showSisaPokok) h += '<td class="num">' + fmtRp(r.sisaPokok) + '</td>';
+      h += '</tr>';
+    });
+    h += '</tbody><tfoot><tr><td>Total</td>' + (showJenjang ? '<td></td>' : '');
+    h += '<td class="num">' + fmtRp(sumP) + '</td><td class="num">' + fmtRp(sumM) + '</td><td class="num">' + fmtRp(sumA) + '</td>';
+    if (showKewajiban) h += '<td class="num">—</td>';
+    if (showSisaPokok) h += '<td class="num">—</td>';
+    return h + '</tr></tfoot></table></div>';
+  }
+
+  /* ================= FITUR 1 ================= */
+  var F1_DEFAULT = { harga: 150000000, dp: 30000000, angsuran: 4200000, tenor: 36 };
+  function f1Fill(d) {
+    setRupiah($('f1Harga'), d.harga); setRupiah($('f1Dp'), d.dp); setRupiah($('f1Angsuran'), d.angsuran);
+    $('f1Tenor').value = d.tenor;
+  }
+  function f1Compute() {
+    var harga = parseRupiah($('f1Harga').value), dpRaw = $('f1Dp').value.trim(), dp = dpRaw ? parseRupiah(dpRaw) : 0;
+    var A = parseRupiah($('f1Angsuran').value), n = parseIntStrict($('f1Tenor').value);
+    var r;
+    try { r = E.analyzePayment(harga, dp, A, n); }
+    catch (err) { showAlert('f1Alert', errMsgs(err)); $('f1Out').innerHTML = '<div class="empty">Lengkapi isian untuk melihat hasil.</div>'; return; }
+    showAlert('f1Alert', null);
+    var ef2 = fmtPct(r.marginEfektifPa, 2), fl2 = fmtPct(r.marginFlatPa, 2);
+    $('f1Out').innerHTML =
+      '<div class="hero"><div class="hero-split">' +
+        '<div><div class="lbl">MARGIN EFEKTIF p.a. (ANUITAS) <span class="badge b-new">BARU</span></div>' +
+        '<div class="val tabular" id="f1Efektif">' + ef2 + '</div><div class="meta">Margin yang biasa disebut bank syariah</div></div>' +
+        '<div><div class="lbl">MARGIN FLAT p.a.</div><div class="val small tabular" id="f1Flat">' + fl2 + '</div>' +
+        '<div class="meta">Angka konversi, dihitung dari pokok awal</div></div>' +
+      '</div></div>' +
+      '<div class="note green"><b>Kenapa dua angka?</b> Keduanya menghasilkan angsuran yang sama persis, hanya cara mengukurnya berbeda. ' +
+        'Jangan bandingkan margin flat dengan margin efektif — ' + fl2 + ' flat <b>tidak</b> lebih murah dari ' + ef2 + ' efektif.</div>' +
+      '<div class="cards-3">' +
+        '<div class="card em"><div class="lbl">Total Margin</div><div class="val em tabular" id="f1TotalMargin">' + fmtRp(r.totalMargin) + '</div><div class="s">Total pembayaran − pokok</div></div>' +
+        '<div class="card nv"><div class="lbl">Margin Total</div><div class="val tabular">' + fmtPct(r.marginTotalPct, 2) + '</div><div class="s">Terhadap pokok pembiayaan</div></div>' +
+        '<div class="card nv"><div class="lbl">Total Pembayaran</div><div class="val tabular" id="f1TotalBayar">' + fmtRp(r.totalBayar) + '</div><div class="s">Angsuran × tenor</div></div>' +
+      '</div>' +
+      '<div class="panel"><h2>Tabel Rincian Perhitungan</h2><p class="desc">Rincian pokok, total pembayaran, dan margin.</p>' +
+        '<div class="scroll"><table class="wrap" id="f1Table"><thead><tr><th>Komponen</th><th>Rumus / Keterangan</th><th class="num">Nilai</th></tr></thead><tbody>' +
+          '<tr><td>Harga Awal / Plafon</td><td>Input</td><td class="num">' + fmtRp(harga) + '</td></tr>' +
+          '<tr><td>Uang Muka / DP</td><td>Input</td><td class="num">' + fmtRp(dp) + '</td></tr>' +
+          '<tr><td>Pokok Pembiayaan</td><td>Harga − DP</td><td class="num">' + fmtRp(r.pokok) + '</td></tr>' +
+          '<tr><td>Total Pembayaran</td><td>' + fmtRpExact(A) + ' × ' + n + '</td><td class="num">' + fmtRp(r.totalBayar) + '</td></tr>' +
+          '<tr class="hl"><td>Total Margin</td><td>Total pembayaran − pokok</td><td class="num">' + fmtRp(r.totalMargin) + '</td></tr>' +
+          '<tr><td>Margin Total (%)</td><td>Margin ÷ pokok</td><td class="num">' + fmtPct(r.marginTotalPct, 4) + '</td></tr>' +
+          '<tr class="hl"><td>Margin Efektif p.a. <span class="badge b-new">BARU</span></td><td>Margin yang membuat rumus anuitas menghasilkan angsuran yang dimasukkan</td><td class="num" data-k="efektif">' + fmtPct(r.marginEfektifPa, 4) + '</td></tr>' +
+          '<tr><td>Margin Efektif per bulan <span class="badge b-new">BARU</span></td><td>Efektif p.a. ÷ 12</td><td class="num">' + fmtPct(r.marginEfektifPa / 12, 4) + '</td></tr>' +
+          '<tr><td>Margin Flat p.a.</td><td>Margin total ÷ tenor × 12</td><td class="num" data-k="flat">' + fmtPct(r.marginFlatPa, 4) + '</td></tr>' +
+        '</tbody></table></div></div>';
+  }
+  $('f1Form').addEventListener('submit', function (e) { e.preventDefault(); f1Compute(); });
+  $('f1Reset').addEventListener('click', function () { f1Fill(F1_DEFAULT); f1Compute(); });
+
+  /* ================= FITUR 2 ================= */
+  var F2_DEFAULT = { pokok: 100000000, tenor: 36, mode: 'pa', pa: 0.09, skema: 'anuitas' };
+  var f2 = { mode: 'pa', skema: 'anuitas', pa: 0.09, total: 0, showSisaPokok: false };
+
+  function f2Inputs() { return { P: parseRupiah($('f2Pokok').value), n: parseIntStrict($('f2Tenor').value) }; }
+  /* Field aktif adalah sumber; field lainnya dihitung ulang mengikuti skema & tenor. */
+  function f2Sync() {
+    var n = f2Inputs().n;
+    if (!(n >= 1)) return;
+    try {
+      if (f2.mode === 'pa') {
+        if (isFinite(f2.pa) && f2.pa >= 0) { f2.total = E.totalFromPa(f2.skema, f2.pa, n); $('f2Total').value = fmtPctInput(f2.total); }
+      } else if (isFinite(f2.total) && f2.total >= 0) {
+        f2.pa = E.paFromTotal(f2.skema, f2.total, n); $('f2Pa').value = fmtPctInput(f2.pa);
+      }
+    } catch (err) { errMsgs(err); }
+  }
+  function f2RenderControls() {
+    document.querySelectorAll('#f2Mode .opt').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-mode') === f2.mode); });
+    document.querySelectorAll('#f2Skema .opt').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-skema') === f2.skema); });
+    $('f2PaWrap').hidden = f2.mode !== 'pa';
+    $('f2TotalWrap').hidden = f2.mode !== 'total';
+  }
+  function f2Fill(d) {
+    setRupiah($('f2Pokok'), d.pokok); $('f2Tenor').value = d.tenor;
+    f2.mode = d.mode; f2.skema = d.skema; f2.pa = d.pa; $('f2Pa').value = fmtPctInput(d.pa);
+    f2Sync(); f2RenderControls();
+  }
+  document.querySelectorAll('#f2Mode .opt').forEach(function (b) {
+    b.addEventListener('click', function () { f2Sync(); f2.mode = b.getAttribute('data-mode'); f2RenderControls(); });
+  });
+  document.querySelectorAll('#f2Skema .opt').forEach(function (b) {
+    b.addEventListener('click', function () { f2.skema = b.getAttribute('data-skema'); f2Sync(); f2RenderControls(); f2Compute(); });
+  });
+  $('f2Pa').addEventListener('input', function () { f2.pa = parsePercent($('f2Pa').value); f2Sync(); });
+  $('f2Total').addEventListener('input', function () { f2.total = parsePercent($('f2Total').value); f2Sync(); });
+  $('f2Tenor').addEventListener('input', f2Sync);
+
+  var f2Last = null;
+  function f2Compute() {
+    var inp = f2Inputs(), P = inp.P, n = inp.n, errs = [];
+    if (!(P > 0)) errs.push('Pokok pembiayaan harus lebih dari 0.');
+    if (!(n >= 1)) errs.push('Tenor harus bilangan bulat minimal 1 bulan.');
+    var active = f2.mode === 'pa' ? f2.pa : f2.total;
+    if (!isFinite(active)) errs.push(f2.mode === 'pa' ? 'Margin p.a. belum diisi atau tidak valid.' : 'Margin total belum diisi atau tidak valid.');
+    else if (active < 0) errs.push('Margin tidak boleh negatif.');
+    if (errs.length) { showAlert('f2Alert', errs); $('f2Out').innerHTML = '<div class="empty">Lengkapi isian untuk melihat hasil.</div>'; f2Last = null; return; }
+    var res;
+    try {
+      f2Sync();
+      var ratePa = f2.mode === 'pa' ? f2.pa : E.paFromTotal(f2.skema, f2.total, n);
+      res = f2.skema === 'flat' ? E.scheduleFlat(P, n, ratePa) : E.scheduleAnnuity(P, n, ratePa);
+    } catch (err) { showAlert('f2Alert', errMsgs(err)); $('f2Out').innerHTML = ''; f2Last = null; return; }
+    showAlert('f2Alert', null);
+    f2Last = { res: res, mode: f2.mode, totalInput: f2.total };
+    f2Render();
+  }
+  function f2Render() {
+    var res = f2Last.res, n = res.tenor, flat = res.skema === 'flat';
+    var meta = 'Tetap ' + n + ' bulan · ' + (flat ? 'margin flat ' + fmtPct(res.marginFlatPa, 2) : 'margin efektif ' + fmtPct(res.marginEfektifPa, 2)) + ' p.a.';
+    var meta2 = '';
+    if (!flat && f2Last.mode === 'total')
+      meta2 = '<div class="meta2">Margin efektif <b id="f2Solved">' + fmtPct(res.marginEfektifPa, 2) + '</b> p.a. dicari agar margin total = ' + fmtPct(f2Last.totalInput, 2) + ' dari pokok.</div>';
+    else if (flat)
+      meta2 = '<div class="meta2">Setara margin efektif ' + fmtPct(res.marginEfektifPa, 2) + ' p.a. (Anuitas).</div>';
+    var pct = res.totalMargin / res.pokok;
+    var h = '<div class="hero"><div class="lbl">ANGSURAN PER BULAN · SKEMA ' + (flat ? 'FLAT' : 'EFEKTIF (ANUITAS)') + '</div>' +
+      '<div class="val tabular" id="f2Angsuran">' + fmtRp(res.angsuranAwal) + '</div><div class="meta">' + meta + '</div>' + meta2 + '</div>' +
+      '<div class="cards">' +
+        '<div class="card nv"><div class="lbl">Total Pembayaran</div><div class="val tabular" id="f2TotalBayar">' + fmtRp(res.totalBayar) + '</div><div class="s">Pokok + margin</div></div>' +
+        '<div class="card em"><div class="lbl">Total Margin</div><div class="val em tabular" id="f2TotalMargin">' + fmtRp(res.totalMargin) + '</div><div class="s">' + fmtPct(pct, 2) + ' dari pokok' + (f2Last.mode === 'total' ? ' — sesuai input ✓' : '') + '</div></div>' +
+      '</div>' +
+      '<div class="panel schedule"><h2>Jadwal Angsuran</h2><p class="desc">Bulan 1–' + n + ' · Skema ' + (flat ? 'Flat' : 'Efektif (Anuitas) — angsuran tetap, porsi pokok membesar') + '</p>';
+    if (!flat) h += '<label class="toggle"><input type="checkbox" id="f2Toggle"' + (f2.showSisaPokok ? ' checked' : '') + '> Tampilkan sisa pokok pembiayaan</label>';
+    h += '<div id="f2Sched">' + scheduleTable(res, { jenjang: false, kewajiban: !flat, sisaPokok: flat || f2.showSisaPokok }) + '</div>' +
+      '<p class="footnote"><b>Sisa Kewajiban</b> = jumlah seluruh angsuran yang belum dibayar (pokok + margin). Pada akad murabahah, ini adalah sisa harga jual yang terikat di akad; potongan margin saat pelunasan dipercepat mengikuti kebijakan lembaga pembiayaan. Skema Flat menampilkan Sisa Pokok Pembiayaan.</p></div>';
+    $('f2Out').innerHTML = h;
+    var t = $('f2Toggle');
+    if (t) t.addEventListener('change', function () {
+      f2.showSisaPokok = t.checked;
+      $('f2Sched').innerHTML = scheduleTable(res, { jenjang: false, kewajiban: true, sisaPokok: f2.showSisaPokok });
+    });
+  }
+  $('f2Form').addEventListener('submit', function (e) { e.preventDefault(); f2Compute(); });
+  $('f2Reset').addEventListener('click', function () { f2Fill(F2_DEFAULT); f2Compute(); });
+
+  /* ================= FITUR 3 ================= */
+  var F3_DEFAULT = { pokok: 300000000, tenor: 120, tiers: [{ dari: 1, sampai: 120, rate: '9' }], cmp: '' };
+  var f3ShowSisaPokok = false;
+
+  function tierRowHtml(t) {
+    return '<div class="tier-row">' +
+      '<input class="input t-dari" inputmode="numeric" aria-label="Dari bulan" value="' + esc(t.dari) + '">' +
+      '<input class="input t-sampai" inputmode="numeric" aria-label="Sampai bulan" value="' + esc(t.sampai) + '">' +
+      '<input class="input t-rate" inputmode="decimal" aria-label="Margin p.a. (%)" value="' + esc(t.rate) + '">' +
+      '<button type="button" class="x" aria-label="Hapus jenjang" title="Hapus jenjang">×</button></div>';
+  }
+  function f3ReadTiersRaw() {
+    return Array.prototype.map.call(document.querySelectorAll('#f3Tiers .tier-row'), function (row) {
+      return { dari: row.querySelector('.t-dari').value, sampai: row.querySelector('.t-sampai').value, rate: row.querySelector('.t-rate').value };
+    });
+  }
+  function f3SetTiers(list) {
+    $('f3Tiers').innerHTML = list.map(tierRowHtml).join('');
+    var rows = document.querySelectorAll('#f3Tiers .tier-row');
+    rows.forEach(function (row, idx) {
+      row.querySelector('.x').disabled = rows.length === 1;
+      row.querySelector('.x').addEventListener('click', function () { f3Remove(idx); });
+      ['.t-dari', '.t-sampai'].forEach(function (s) {
+        var el = row.querySelector(s);
+        el.addEventListener('input', function () { var v = el.value.replace(/\D/g, ''); if (v !== el.value) el.value = v; });
+      });
+      var r = row.querySelector('.t-rate');
+      r.addEventListener('input', function () { var v = r.value.replace(/[^\d,.]/g, ''); if (v !== r.value) r.value = v; });
+    });
+  }
+  function f3Remove(idx) {
+    var list = f3ReadTiersRaw();
+    if (list.length <= 1) return;
+    var removed = list.splice(idx, 1)[0];
+    // Tutup celah: jenjang sebelumnya diperpanjang, atau jenjang berikutnya dimulai dari bulan jenjang yang dihapus.
+    if (idx > 0) list[idx - 1].sampai = removed.sampai;
+    else list[0].dari = removed.dari;
+    f3SetTiers(list);
+  }
+  $('f3Add').addEventListener('click', function () {
+    var list = f3ReadTiersRaw(), n = parseIntStrict($('f3Tenor').value);
+    var last = list[list.length - 1], lastEnd = parseIntStrict(last && last.sampai);
+    var dari = isFinite(lastEnd) ? lastEnd + 1 : '';
+    var sampai = isFinite(n) && isFinite(dari) && n >= dari ? n : '';
+    list.push({ dari: dari, sampai: sampai, rate: last ? last.rate : '' });
+    f3SetTiers(list);
+    var rows = document.querySelectorAll('#f3Tiers .tier-row');
+    rows[rows.length - 1].querySelector(sampai === '' ? '.t-dari' : '.t-sampai').focus();
+  });
+  function f3TenorHint() {
+    var n = parseIntStrict($('f3Tenor').value);
+    $('f3TenorHint').textContent = n >= 12 ? (n % 12 ? fmtNum(n / 12, 1) : n / 12) + ' tahun' : '';
+  }
+  var f3PrevTenor = null;
+  $('f3Tenor').addEventListener('focus', function () { f3PrevTenor = parseIntStrict($('f3Tenor').value); });
+  $('f3Tenor').addEventListener('input', function () {
+    f3TenorHint();
+    // Jika jenjang terakhir tadinya menutup tenor, ikutkan ke tenor baru.
+    var n = parseIntStrict($('f3Tenor').value), rows = document.querySelectorAll('#f3Tiers .tier-row');
+    if (!rows.length || !(n >= 1)) return;
+    var lastS = rows[rows.length - 1].querySelector('.t-sampai');
+    if (parseIntStrict(lastS.value) === f3PrevTenor) lastS.value = n;
+    f3PrevTenor = n;
+  });
+
+  function f3Fill(d) {
+    setRupiah($('f3Pokok'), d.pokok); $('f3Tenor').value = d.tenor; $('f3Cmp').value = d.cmp;
+    f3SetTiers(d.tiers); f3TenorHint();
+  }
+  var f3Last = null;
+  function f3Compute() {
+    var P = parseRupiah($('f3Pokok').value), n = parseIntStrict($('f3Tenor').value), errs = [];
+    if (!(P > 0)) errs.push('Pokok pembiayaan harus lebih dari 0.');
+    if (!(n >= 1)) errs.push('Tenor total harus bilangan bulat minimal 1 bulan.');
+    var tiers = f3ReadTiersRaw().map(function (t) {
+      return { dari: parseIntStrict(t.dari), sampai: parseIntStrict(t.sampai), ratePa: parsePercent(t.rate) };
+    });
+    var cmpRaw = $('f3Cmp').value.trim(), cmpRate = cmpRaw ? parsePercent(cmpRaw) : null;
+    if (cmpRaw && !(cmpRate >= 0)) errs.push('Margin pembanding tidak valid.');
+    if (!errs.length) errs = E.validateTiers(n, tiers);
+    if (errs.length) { showAlert('f3Alert', errs); $('f3Out').innerHTML = '<div class="empty">Perbaiki isian untuk melihat hasil.</div>'; f3Last = null; return; }
+    var res, cmp = null;
+    try {
+      res = E.scheduleStepUp(P, n, tiers);
+      if (cmpRate !== null) cmp = E.scheduleAnnuity(P, n, cmpRate);
+    } catch (err) { showAlert('f3Alert', errMsgs(err)); $('f3Out').innerHTML = ''; f3Last = null; return; }
+    showAlert('f3Alert', null);
+    f3Last = { res: res, cmp: cmp, cmpRate: cmpRate };
+    f3Render();
+  }
+  function f3Render() {
+    var res = f3Last.res, cmp = f3Last.cmp;
+    var h = '<div class="panel" style="margin-bottom:1.25rem"><h2>Ringkasan Angsuran per Jenjang</h2><p class="desc">Angsuran dihitung ulang di awal setiap jenjang.</p>' +
+      '<div class="scroll"><table id="f3Summary"><thead><tr><th>Jenjang</th><th>Periode</th><th class="num">Margin p.a.</th><th class="num">Angsuran/bulan</th><th class="num">Lonjakan</th></tr></thead><tbody>';
+    res.tiers.forEach(function (t, i) {
+      var jump = '—';
+      if (i > 0) {
+        var prev = Math.round(res.tiers[i - 1].angsuran), cur = Math.round(t.angsuran), d = cur - prev;
+        jump = '<span class="up">' + (d >= 0 ? '+' : '−') + fmtRp(Math.abs(d)) + ' (' + (d >= 0 ? '+' : '−') + fmtNum(Math.abs(d) / prev * 100, 1) + '%)</span>';
+      }
+      h += '<tr><td>' + t.jenjang + '</td><td>Bulan ' + t.dari + '–' + t.sampai + '</td><td class="num">' + fmtPct(t.marginPa, 2) + '</td>' +
+        '<td class="num">' + fmtRp(t.angsuran) + '</td><td class="num">' + jump + '</td></tr>';
+    });
+    h += '</tbody></table></div></div>' +
+      '<div class="cards-3">' +
+        '<div class="card nv"><div class="lbl">Total Pembayaran</div><div class="val tabular" id="f3TotalBayar">' + fmtRp(res.totalBayar) + '</div><div class="s">Seluruh jenjang</div></div>' +
+        '<div class="card em"><div class="lbl">Total Margin</div><div class="val em tabular" id="f3TotalMargin">' + fmtRp(res.totalMargin) + '</div><div class="s">' + fmtPct(res.totalMargin / res.pokok, 2) + ' dari pokok</div></div>' +
+        '<div class="card em"><div class="lbl">Margin Efektif Gabungan</div><div class="val em tabular" id="f3Gabungan">' + fmtPct(res.marginEfektifPa, 2) + '</div><div class="s">Margin efektif setara untuk seluruh tenor</div></div>' +
+      '</div>';
+    if (cmp) {
+      var stTotal = Math.round(res.totalBayar), cpTotal = Math.round(cmp.totalBayar);
+      var diffTotal = cpTotal - stTotal;
+      var t1 = res.tiers[0], N = t1.sampai - t1.dari + 1;
+      var diffA = Math.round(cmp.angsuranAwal) - Math.round(t1.angsuran);
+      h += '<div class="note green" id="f3CmpNote"><b>vs margin tetap ' + fmtPct(f3Last.cmpRate, 2) + ':</b> angsuran tetap ' + fmtRp(cmp.angsuranAwal) +
+        ', total ' + fmtRp(cmp.totalBayar) + '. Step-up ' +
+        (diffTotal === 0 ? '<b>sama</b> total pembayarannya' : 'lebih ' + (diffTotal > 0 ? 'murah' : 'mahal') + ' <b>' + fmtRp(Math.abs(diffTotal)) + '</b>') +
+        ' dan ' + (diffA === 0 ? 'angsurannya sama' : 'lebih ' + (diffA > 0 ? 'ringan' : 'berat') + ' ' + fmtRp(Math.abs(diffA)) + '/bulan') +
+        ' selama ' + N + ' bulan pertama.</div>';
+    }
+    h += '<div class="panel schedule"><h2>Jadwal Angsuran Step-Up</h2><p class="desc">Bulan 1–' + res.tenor + ' · Baris pergantian jenjang disorot.</p>' +
+      '<label class="toggle"><input type="checkbox" id="f3Toggle"' + (f3ShowSisaPokok ? ' checked' : '') + '> Tampilkan sisa pokok pembiayaan</label>' +
+      '<div id="f3Sched">' + scheduleTable(res, { jenjang: true, kewajiban: true, sisaPokok: f3ShowSisaPokok }) + '</div>' +
+      '<p class="footnote"><b>Sisa Kewajiban</b> = jumlah seluruh angsuran yang belum dibayar (pokok + margin). Pada akad murabahah, ini adalah sisa harga jual yang terikat di akad; potongan margin saat pelunasan dipercepat mengikuti kebijakan lembaga pembiayaan.</p></div>';
+    $('f3Out').innerHTML = h;
+    $('f3Toggle').addEventListener('change', function () {
+      f3ShowSisaPokok = this.checked;
+      $('f3Sched').innerHTML = scheduleTable(res, { jenjang: true, kewajiban: true, sisaPokok: f3ShowSisaPokok });
+    });
+  }
+  $('f3Form').addEventListener('submit', function (e) { e.preventDefault(); f3Compute(); });
+  $('f3Reset').addEventListener('click', function () { f3Fill(F3_DEFAULT); f3Compute(); });
+
+  /* ---------- Mulai ---------- */
+  f1Fill(F1_DEFAULT); f1Compute();
+  f2Fill(F2_DEFAULT); f2Compute();
+  f3Fill(F3_DEFAULT); f3Compute();
+
+  window.FinUI = { parseRupiah: parseRupiah, parsePercent: parsePercent, showTab: showTab };
+})();
+</script>
+</body>
+</html>
