@@ -211,6 +211,13 @@ async function f3Setup(page, pokok, tenor, tiers, cmp) {
     c4 = await rowCells(page, '#f4Sched table', 120);
     check('efektif menurun bulan 120 Rp 1.010.000', c4[4], 'Rp 1.010.000');
     check('kolom bunga di jadwal B', await page.$$eval('#f4Sched thead th', (t) => t.map((x) => x.innerText.trim()).join('|')), contains('Angsuran Bunga'));
+    c4 = await rowCells(page, '#f4Sched table', 1);
+    check('jadwal B punya Sisa Kewajiban (bulan 1)', await page.$$eval('#f4Sched thead th', (t) => t.map((x) => x.innerText.trim()).join('|')), 'Bulan|Periode|Angsuran Pokok|Angsuran Bunga|Total Angsuran|Sisa Kewajiban');
+    await page.check('#f4Toggle');
+    check('sakelar menambah Sisa Pokok di B', await page.$$eval('#f4Sched thead th', (t) => t.map((x) => x.innerText.trim()).pop()), 'Sisa Pokok');
+    const sk = await page.evaluate(() => { const r = FinEngine.scheduleSegments(12e7, 120, [{ dari: 1, sampai: 120, ratePa: 0.12 }], { metode: 'pokokTetap' }); return [r.rows[0].sisaKewajiban, r.totalBayar - r.rows[0].angsuran]; });
+    check('sisa kewajiban B bulan 1 = total − angsuran 1', Math.abs(sk[0] - sk[1]) < 1e-6, true);
+    await page.uncheck('#f4Toggle');
 
     // Biaya di muka menaikkan biaya efektif.
     await f4({ harga: '100.000.000', tenor: '36', tiers: '9', bFix: '9', bFixM: '36', prov: '1' });

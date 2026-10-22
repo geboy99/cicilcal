@@ -804,8 +804,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     var h = '<div class="swipe">Geser tabel ke samping →</div><div class="scroll"><table class="sticky"><thead><tr><th>Bulan</th>';
     if (showJenjang) h += '<th>' + periodeLabel + '</th>';
     h += '<th class="num">Angsuran Pokok</th><th class="num">' + marginLabel + '</th><th class="num">Total Angsuran</th>';
-    if (showKewajiban) h += '<th class="num">Sisa Kewajiban</th>';
-    if (showSisaPokok) h += '<th class="num">Sisa Pokok Pembiayaan</th>';
+    if (showKewajiban) h += '<th class="num">' + (opts.kewajibanLabel || 'Sisa Kewajiban') + '</th>';
+    if (showSisaPokok) h += '<th class="num">' + (opts.sisaPokokLabel || 'Sisa Pokok Pembiayaan') + '</th>';
     h += '</tr></thead><tbody>';
     var sumP = 0, sumM = 0, sumA = 0;
     res.rows.forEach(function (r) {
@@ -1316,7 +1316,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
     // Jadwal
     h += '<div class="panel schedule"><h2>Jadwal Angsuran</h2><p class="desc">Baris abu-abu miring memakai asumsi margin/bunga setelah masa tetap.</p>' +
       '<div class="seg" id="f4SchedSel"><button type="button" class="opt" data-s="a"><b>A · ' + nameA + '</b></button><button type="button" class="opt" data-s="b"><b>B · Konvensional</b></button></div><br>' +
-      '<label class="toggle" id="f4ToggleWrap"><input type="checkbox" id="f4Toggle"> Tampilkan sisa pokok pembiayaan</label>' +
+      '<label class="toggle" id="f4ToggleWrap"><input type="checkbox" id="f4Toggle"> Tampilkan sisa pokok</label>' +
       '<div id="f4Sched"></div></div>' +
       '<p class="disclaimer">Hasil simulasi, bukan penawaran. Bunga floating adalah asumsi Anda; ketentuan sebenarnya mengikuti akad atau perjanjian masing-masing lembaga.</p>';
 
@@ -1354,12 +1354,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FinEngine;
   function f4RenderSched() {
     var o = f4Last, isA = f4.sched === 'a', res = isA ? o.resA : o.resB;
     document.querySelectorAll('#f4SchedSel .opt').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-s') === f4.sched); });
-    var kewajiban = isA;
-    $('f4ToggleWrap').hidden = !kewajiban;
-    var opts = { jenjang: true, markEst: true, kewajiban: kewajiban, sisaPokok: !kewajiban || f4.showSisaPokok,
-      periodeLabel: isA ? 'Jenjang' : 'Periode', marginLabel: isA ? 'Angsuran Margin' : 'Angsuran Bunga' };
+    // Kolom sama untuk A dan B: Sisa Kewajiban, plus Sisa Pokok lewat sakelar.
+    var est = hasEst(res);
+    var opts = { jenjang: true, markEst: true, kewajiban: true, sisaPokok: f4.showSisaPokok,
+      periodeLabel: isA ? 'Jenjang' : 'Periode', marginLabel: isA ? 'Angsuran Margin' : 'Angsuran Bunga',
+      kewajibanLabel: est ? 'Sisa Kewajiban ≈' : 'Sisa Kewajiban', sisaPokokLabel: isA ? 'Sisa Pokok Pembiayaan' : 'Sisa Pokok' };
     if (!isA) opts.periodeFmt = function (r) { return (r.pasti ? 'Tetap · ' : 'Floating ≈ ') + fmtPct(r.marginPa, 2); };
-    $('f4Sched').innerHTML = scheduleTable(res, opts);
+    $('f4Sched').innerHTML = scheduleTable(res, opts) +
+      '<p class="footnote"><b>Sisa Kewajiban</b> = jumlah seluruh angsuran yang belum dibayar (pokok + ' + (isA ? 'margin' : 'bunga') + '). ' +
+      (isA ? 'Pada murabahah ini adalah sisa harga jual yang terikat di akad, dan menjadi dasar pelunasan dipercepat.'
+           : 'Pada kredit konvensional angka ini hanya pembanding: pelunasan dipercepat dihitung dari sisa pokok + penalti, bukan dari sisa kewajiban.' +
+             (est ? ' Karena bunga setelah masa tetap adalah asumsi, sisa kewajiban B adalah estimasi sejak bulan 1.' : '')) + '</p>';
   }
 
   /* Grafik garis bertingkat: angsuran per bulan, A vs B. SVG tanpa pustaka. */
